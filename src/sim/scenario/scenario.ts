@@ -29,6 +29,7 @@ export interface ScenarioContact {
   personsAboard?: number;
   behavior: Behavior;
   spawnAtS?: number;
+  visualDescription?: string;
 }
 
 export type ScenarioCondition =
@@ -129,6 +130,8 @@ export function buildContact(def: ScenarioContact, ownShip: OwnShip): RadarConta
   if (def.size !== undefined) contact.size = def.size;
   if (def.pDetect !== undefined) contact.pDetect = def.pDetect;
   if (def.personsAboard !== undefined) contact.personsAboard = def.personsAboard;
+
+  contact.visualDescription = def.visualDescription ?? def.name;
 
   return contact;
 }

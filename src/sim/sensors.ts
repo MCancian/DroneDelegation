@@ -1,4 +1,4 @@
-import type { Contact, Domain, OwnShip, RadarContact, Vec2 } from './types';
+import type { Contact, Domain, OwnShip, RadarContact, Vec2, VisualInfo } from './types';
 import { move, rangeTo } from './geo';
 import type { Rng } from './rng';
 
@@ -34,6 +34,8 @@ export interface TrackState {
   faded: boolean;
   history: Vec2[];
   lastHistoryAt: number;
+  visual: VisualInfo;
+  visualIdAt: number | null;
 }
 
 export interface SensorState {
@@ -63,6 +65,33 @@ export function detectionRangeNm(contact: Contact, cfg: SensorConfig = DEFAULT_S
 
 export function inVisualRange(ownShip: OwnShip, contact: Contact, cfg: SensorConfig = DEFAULT_SENSOR_CONFIG): boolean {
   return rangeTo(ownShip.position, contact.position) <= cfg.visualRangeNm;
+}
+
+export function visualDescriptionFor(contact: Contact): string {
+  if (contact.visualDescription !== undefined && contact.visualDescription !== '') {
+    return contact.visualDescription;
+  }
+  switch (contact.domain) {
+    case 'air':
+      return 'Aircraft';
+    case 'surface':
+      return contact.size === 'small' ? 'Small craft' : 'Vessel';
+    case 'missile':
+      return 'Missile';
+  }
+}
+
+export function canVisuallyIdentify(
+  contact: Contact,
+  ownShip: OwnShip,
+  cfg: SensorConfig = DEFAULT_SENSOR_CONFIG,
+): boolean {
+  return (
+    contact.alive &&
+    !contact.ownMissile &&
+    contact.domain !== 'missile' &&
+    inVisualRange(ownShip, contact, cfg)
+  );
 }
 
 export function trackPrefix(domain: Domain): 'A' | 'S' | 'M' {
@@ -147,6 +176,8 @@ export function sweep(
           faded: false,
           history: [],
           lastHistoryAt: -Infinity,
+          visual: { kind: 'none' },
+          visualIdAt: null,
         };
         const newTrack = state.tracks[contact.id];
         newTrack.history.push(copyVec(contact.position));
@@ -166,6 +197,13 @@ export function sweep(
           }
           track.lastHistoryAt = timeS;
         }
+      }
+
+      // Visual ID latch: once identified, stays identified.
+      const t = state.tracks[contact.id];
+      if (t.visual.kind === 'none' && canVisuallyIdentify(contact, ownShip, cfg)) {
+        t.visual = { kind: 'identified', description: visualDescriptionFor(contact) };
+        t.visualIdAt = timeS;
       }
     } else if (track) {
       if (!contact.alive) {
@@ -206,6 +244,10 @@ export function visibleTracks(
     clone.history = track.history.map(copyVec);
     clone.faded = track.faded;
     delete clone.motion;
+    delete clone.visualDescription;
+    if (track.visual.kind === 'identified') {
+      clone.sensors.visual = { ...track.visual };
+    }
     result.push(clone);
   }
   return result;

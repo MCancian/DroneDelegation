@@ -4,16 +4,27 @@ export interface GameConfig {
 }
 
 export const DEFAULT_TIMESCALE = 1;
+export const MIN_TIMESCALE = 0.1;
+export const MAX_TIMESCALE = 100;
 
-export function parseConfig(search: string, fallbackSeed: number): GameConfig {
+/**
+ * Parse URL search params into a GameConfig.
+ *
+ * `allowTimescale` must be true for `?timescale` to take effect (dev builds only
+ * per DESIGN.md §1 — "There is no pause"). When false, timescale is always
+ * DEFAULT_TIMESCALE regardless of the URL. Seed parsing is unaffected.
+ */
+export function parseConfig(search: string, fallbackSeed: number, allowTimescale: boolean): GameConfig {
   const params = new URLSearchParams(search);
 
   let timescale = DEFAULT_TIMESCALE;
-  const tsRaw = params.get('timescale');
-  if (tsRaw !== null && tsRaw.trim() !== '') {
-    const ts = Number(tsRaw);
-    if (Number.isFinite(ts) && ts > 0) {
-      timescale = ts;
+  if (allowTimescale) {
+    const tsRaw = params.get('timescale');
+    if (tsRaw !== null && tsRaw.trim() !== '') {
+      const ts = Number(tsRaw);
+      if (Number.isFinite(ts) && ts > 0) {
+        timescale = Math.min(MAX_TIMESCALE, Math.max(MIN_TIMESCALE, ts));
+      }
     }
   }
 
