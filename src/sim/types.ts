@@ -19,7 +19,9 @@ export type Actor =
   | 'ai-chat'
   | 'ai-auto'
   | 'doctrine'
-  | 'crew-auto';
+  | 'crew-auto'
+  // Actor for events the scenario script itself causes (spawns, enemy launches, scripted crew reports).
+  | 'scenario';
 
 export type IffInfo =
   | { kind: 'none' }

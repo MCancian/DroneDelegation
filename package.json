@@ -11,7 +11,8 @@
     "build": "vite build && tsc -p tsconfig.server.json",
     "start": "node dist-server/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "scenario:timeline": "tsx scripts/scenarioTimeline.ts"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
