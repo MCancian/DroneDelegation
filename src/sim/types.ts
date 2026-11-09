@@ -60,6 +60,19 @@ export interface Contact {
   history: Vec2[];
 }
 
+export type RadarContact = Contact & { faded?: boolean };
+
+export interface Missile {
+  id: string;
+  launcherId: string;
+  targetId: string | null;
+  position: Vec2;
+  courseDeg: number;
+  speedKts: number;
+  altitudeFt: number;
+  alive: boolean;
+}
+
 export interface WeaponInventory {
   sam: number;
   chaff: number;

@@ -1,14 +1,15 @@
-import type { Classification, OwnShip, Vec2 } from '../sim/types';
-import type { RadarContact } from './demoContacts';
-import type { Projection } from './radarProjection';
+import type { Classification, OwnShip, RadarContact, Vec2 } from '../sim/types';
+import type { Projection, ScreenRect } from './radarProjection';
 import {
   bearingToScreenAngle,
+  cappedLeaderLengthPx,
   clampRange,
   DEFAULT_RANGE_NM,
   isInsideScope,
-  leaderLengthPx,
+  LEADER_MAX_SCOPE_FRACTION,
   makeProjection,
   nextRangeStep,
+  pickRingLabelBearing,
   pointAtBearing,
   ringRadiiNm,
   screenToWorld as projectionScreenToWorld,
@@ -41,7 +42,6 @@ const MONOSPACE_FONT = '"Courier New", Courier, monospace';
 
 const PADDING_PX = 28;
 const RING_COUNT = 4;
-const RING_LABEL_BEARING_DEG = 45;
 
 const TICK_MINOR_DEG = 10;
 const TICK_MAJOR_DEG = 30;
@@ -69,7 +69,6 @@ const SYMBOL_LINE_WIDTH_PX = 1.5;
 const MISSILE_SIZE_PX = 4;
 const HISTORY_DOT_RADIUS_PX = 1.5;
 
-const LEADER_MINUTES = 2;
 const LEADER_MIN_PX = 6;
 
 const LABEL_FONT_PX = 11;
@@ -130,6 +129,23 @@ function isFlickerOff(nowMs: number, trackId: string): boolean {
   return Math.sin(nowMs / FADED_FLICKER_PERIOD_MS + hashString(trackId)) > FADED_FLICKER_THRESHOLD;
 }
 
+function contactLabelInfo(
+  contact: RadarContact,
+  screen: Vec2,
+): { lines: string[]; x: number; y: number } {
+  const lines: string[] = [contact.trackId];
+  if (contact.domain === 'air') {
+    lines.push(`ALT ${String(Math.round(contact.altitudeFt / 100)).padStart(3, '0')}`);
+  }
+  lines.push(`SPD ${Math.round(contact.speedKts)}`);
+
+  const labelX = screen.x + SYMBOL_RADIUS_PX + LABEL_OFFSET_X_PX;
+  const labelY =
+    screen.y - SYMBOL_RADIUS_PX - LABEL_OFFSET_Y_PX - (lines.length - 1) * LABEL_LINE_HEIGHT_PX;
+
+  return { lines, x: labelX, y: labelY };
+}
+
 export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Radar {
   const ctx = canvas.getContext('2d');
   if (!ctx) {
@@ -141,6 +157,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
 
   let rangeNm = clampRange(opts?.rangeNm ?? DEFAULT_RANGE_NM);
   let projection: Projection | null = null;
+  let lastOwnShipPosition: Vec2 = { x: 0, y: 0 };
 
   const measure = (): { cssWidth: number; cssHeight: number } => {
     const cssWidth = positiveFinite(canvas.clientWidth, 1);
@@ -153,7 +170,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
       return projection;
     }
     const { cssWidth, cssHeight } = measure();
-    return makeProjection(cssWidth, cssHeight, rangeNm, { x: 0, y: 0 }, PADDING_PX);
+    return makeProjection(cssWidth, cssHeight, rangeNm, lastOwnShipPosition, PADDING_PX);
   };
 
   const setRange = (nm: number): void => {
@@ -175,12 +192,57 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
 
   canvas.addEventListener('wheel', onWheel, { passive: false });
 
-  const drawRings = (proj: Projection): void => {
+  const computeContactObstacles = (
+    proj: Projection,
+    contacts: RadarContact[],
+  ): ScreenRect[] => {
+    const obstacles: ScreenRect[] = [];
+    ctx.font = `${LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
+
+    for (const contact of contacts) {
+      if (!contact.alive) {
+        continue;
+      }
+      if (!isInsideScope(proj, contact.position)) {
+        continue;
+      }
+
+      const screen = projectionWorldToScreen(proj, contact.position);
+
+      const symbolHalf = SYMBOL_RADIUS_PX + 2;
+      obstacles.push({
+        x: screen.x - symbolHalf,
+        y: screen.y - symbolHalf,
+        width: symbolHalf * 2,
+        height: symbolHalf * 2,
+      });
+
+      const { lines, x: labelX, y: labelY } = contactLabelInfo(contact, screen);
+      let maxWidth = 0;
+      for (const line of lines) {
+        const w = ctx.measureText(line).width;
+        if (w > maxWidth) {
+          maxWidth = w;
+        }
+      }
+      obstacles.push({
+        x: labelX,
+        y: labelY,
+        width: maxWidth,
+        height: lines.length * LABEL_LINE_HEIGHT_PX,
+      });
+    }
+
+    return obstacles;
+  };
+
+  const drawRings = (proj: Projection, contacts: RadarContact[]): void => {
     const center = proj.centerPx;
+    const obstacles = computeContactObstacles(proj, contacts);
+
     ctx.strokeStyle = RING_COLOR;
     ctx.fillStyle = RING_LABEL_COLOR;
     ctx.lineWidth = RING_LINE_WIDTH_PX;
-    ctx.font = `${BEARING_LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -191,8 +253,18 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
       ctx.arc(center.x, center.y, ringRadius, 0, TAU);
       ctx.stroke();
 
-      const label = pointAtBearing(proj, RING_LABEL_BEARING_DEG, ringRadius);
-      ctx.fillText(formatNmLabel(nm), label.x, label.y);
+      ctx.font = `${BEARING_LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
+      const text = formatNmLabel(nm);
+      const textWidth = ctx.measureText(text).width;
+      const bearing = pickRingLabelBearing(
+        proj,
+        ringRadius,
+        textWidth + 4,
+        BEARING_LABEL_FONT_PX + 4,
+        obstacles,
+      );
+      const label = pointAtBearing(proj, bearing, ringRadius);
+      ctx.fillText(text, label.x, label.y);
     }
   };
 
@@ -321,10 +393,14 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
 
       ctx.globalAlpha = alpha;
 
+      const capped = cappedLeaderLengthPx(contact.speedKts, proj);
       const leader =
         contact.speedKts <= 0
           ? 0
-          : Math.max(leaderLengthPx(contact.speedKts, proj, LEADER_MINUTES), LEADER_MIN_PX);
+          : Math.min(
+              Math.max(capped, LEADER_MIN_PX),
+              proj.radiusPx * LEADER_MAX_SCOPE_FRACTION,
+            );
 
       if (leader > 0) {
         const angle = bearingToScreenAngle(contact.courseDeg);
@@ -359,15 +435,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
         ctx.fill();
       }
 
-      const lines: string[] = [contact.trackId];
-      if (contact.domain === 'air') {
-        lines.push(`ALT ${String(Math.round(contact.altitudeFt / 100)).padStart(3, '0')}`);
-      }
-      lines.push(`SPD ${Math.round(contact.speedKts)}`);
-
-      const labelX = screen.x + SYMBOL_RADIUS_PX + LABEL_OFFSET_X_PX;
-      const labelY =
-        screen.y - SYMBOL_RADIUS_PX - LABEL_OFFSET_Y_PX - (lines.length - 1) * LABEL_LINE_HEIGHT_PX;
+      const { lines, x: labelX, y: labelY } = contactLabelInfo(contact, screen);
 
       ctx.fillStyle = color;
       for (let i = 0; i < lines.length; i += 1) {
@@ -429,6 +497,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
+    lastOwnShipPosition = { ...view.ownShip.position };
     projection = makeProjection(cssWidth, cssHeight, rangeNm, view.ownShip.position, PADDING_PX);
 
     const rawNow = nowFn();
@@ -438,7 +507,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
 
     const center = projection.centerPx;
 
-    drawRings(projection);
+    drawRings(projection, view.contacts);
     drawScopeOuter(projection);
     drawBearingTicks(projection);
 
