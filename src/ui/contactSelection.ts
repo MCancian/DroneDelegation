@@ -3,6 +3,8 @@ import { bearingTo, cpa, rangeTo, velocityFrom } from '../sim/geo';
 
 export const PICK_TOLERANCE_PX = 12;
 
+const SCOPE_EPSILON = 1e-9;
+
 export interface ContactDetailRow {
   label: string;
   value: string;
@@ -36,6 +38,22 @@ export function pickContact<T extends Contact>(
   }
 
   return best;
+}
+
+export function visibleContacts<T extends Contact>(
+  contacts: readonly T[],
+  ownShipPosition: Vec2,
+  rangeNm: number,
+): T[] {
+  if (rangeNm < 0) {
+    return [];
+  }
+
+  return contacts.filter(
+    (contact) =>
+      contact.alive &&
+      rangeTo(ownShipPosition, contact.position) <= rangeNm + SCOPE_EPSILON,
+  );
 }
 
 export function toleranceNmFromPx(tolerancePx: number, pxPerNm: number): number {
