@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DroneDelegation</title>
+  </head>
+  <body>
+    <div id="app">
+      <header id="topbar">
+        <div id="clock">00:00 / 15:00</div>
+        <div id="hull">Hull 100%</div>
+        <div id="autonomy">
+          <span id="autonomy-air">Air: HOLD</span>
+          <span id="autonomy-surface">Surface: HOLD</span>
+        </div>
+      </header>
+      <main id="main">
+        <section id="radar">
+          <canvas id="radar-canvas"></canvas>
+        </section>
+        <aside id="side">
+          <section id="crew-feed">
+            <h2>Crew Feed</h2>
+            <p>Placeholder crew messages.</p>
+          </section>
+          <section id="chat">
+            <h2>Chat</h2>
+            <p>Placeholder chat.</p>
+          </section>
+        </aside>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
