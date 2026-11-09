@@ -3,13 +3,12 @@ import type {
   Contact,
   Domain,
   OwnShip,
+  RadarContact,
   SensorInfo,
   Truth,
   Vec2,
 } from '../sim/types';
 import { fromBearingRange, move, normalizeDeg } from '../sim/geo';
-
-export type RadarContact = Contact & { faded?: boolean };
 
 export const DEMO_OWN_SHIP: OwnShip = {
   position: { x: 0, y: 0 },

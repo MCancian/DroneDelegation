@@ -6,6 +6,10 @@ import { pickContact, PICK_TOLERANCE_PX, visibleContacts } from './ui/contactSel
 import { createContactPanel } from './ui/contactPanel';
 import type { ContactPanel } from './ui/contactPanel';
 import { rangeTo } from './sim/geo';
+import { parseConfig, randomSeed } from './config';
+import { GameClock } from './sim/clock';
+import { World } from './sim/world';
+import { createHud } from './ui/hud';
 
 function setText(id: string, text: string): void {
   const element = document.getElementById(id);
@@ -14,8 +18,28 @@ function setText(id: string, text: string): void {
   }
 }
 
-setText('clock', '00:00 / 15:00');
-setText('hull', 'Hull 100%');
+const config = parseConfig(window.location.search, randomSeed());
+
+const world = new World({
+  seed: config.seed,
+  ownShip: DEMO_OWN_SHIP,
+  contacts: DEMO_CONTACTS,
+});
+
+const clock = new GameClock({ timescale: config.timescale });
+
+clock.onStep((dt) => {
+  world.step(dt);
+});
+
+clock.onEnd((t) => {
+  world.logEvent('scenario-end', 'crew-auto', { t });
+});
+
+const hud = createHud();
+hud.setClock(0);
+hud.setHull(world.ownShip.hullPct);
+
 setText('autonomy-air', 'Air: HOLD');
 setText('autonomy-surface', 'Surface: HOLD');
 
@@ -77,18 +101,26 @@ if (canvas instanceof HTMLCanvasElement) {
     const px = event.clientX - rect.left;
     const py = event.clientY - rect.top;
 
-    const world = radar.screenToWorld(px, py);
+    const worldPt = radar.screenToWorld(px, py);
     const worldOffset = radar.screenToWorld(px + PICK_TOLERANCE_PX, py);
-    const toleranceNm = rangeTo(world, worldOffset);
+    const toleranceNm = rangeTo(worldPt, worldOffset);
 
-    const visible = visibleContacts(DEMO_CONTACTS, DEMO_OWN_SHIP.position, radar.getRange());
-    const picked = pickContact(visible, world, toleranceNm);
+    const visible = visibleContacts(world.contacts, world.ownShip.position, radar.getRange());
+    const picked = pickContact(visible, worldPt, toleranceNm);
     selectedId = picked !== null ? picked.id : null;
   });
 
-  const frame = (): void => {
+  let lastTs: number | null = null;
+
+  const frame = (ts: number): void => {
+    const delta = lastTs === null ? 0 : (ts - lastTs) / 1000;
+    lastTs = ts;
+
+    clock.advance(delta);
+    hud.setClock(clock.time);
+
     let selectedContact = selectedId !== null
-      ? visibleContacts(DEMO_CONTACTS, DEMO_OWN_SHIP.position, radar.getRange()).find((c) => c.id === selectedId) ?? null
+      ? visibleContacts(world.contacts, world.ownShip.position, radar.getRange()).find((c) => c.id === selectedId) ?? null
       : null;
 
     if (selectedId !== null && selectedContact === null) {
@@ -96,13 +128,13 @@ if (canvas instanceof HTMLCanvasElement) {
     }
 
     radar.render({
-      ownShip: DEMO_OWN_SHIP,
-      contacts: DEMO_CONTACTS,
+      ownShip: world.ownShip,
+      contacts: world.contacts,
       selectedId,
     });
 
     if (panel !== null) {
-      panel.update(selectedContact, DEMO_OWN_SHIP);
+      panel.update(selectedContact, world.ownShip);
     }
 
     requestAnimationFrame(frame);

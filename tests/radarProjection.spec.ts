@@ -1,20 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import { fromBearingRange } from '../src/sim/geo';
 import {
+  cappedLeaderLengthPx,
   DEFAULT_RANGE_NM,
+  LEADER_MAX_SCOPE_FRACTION,
+  LEADER_MINUTES,
   RANGE_SCALES,
+  RING_LABEL_CANDIDATE_BEARINGS,
   bearingToScreenAngle,
   clampRange,
   isInsideScope,
   leaderLengthPx,
   makeProjection,
   nextRangeStep,
+  pickRingLabelBearing,
   pointAtBearing,
   pxPerNm,
+  rectsOverlap,
+  ringLabelRect,
   ringRadiiNm,
   screenToWorld,
   worldToScreen,
 } from '../src/ui/radarProjection';
+import type { ScreenRect } from '../src/ui/radarProjection';
 
 describe('radarProjection', () => {
   it('exposes the required range scales', () => {
@@ -210,5 +218,144 @@ describe('radarProjection', () => {
     expect(
       isInsideScope(p, fromBearingRange(origin, 90, p.rangeNm - 0.1)),
     ).toBe(true);
+  });
+
+  describe('cappedLeaderLengthPx', () => {
+    const p = makeProjection(400, 400, 40, { x: 0, y: 0 }, 0);
+    const p10 = makeProjection(400, 400, 10, { x: 0, y: 0 }, 0);
+
+    it('caps a 600 kt leader at 15% of scope radius', () => {
+      const result = cappedLeaderLengthPx(600, p);
+      expect(result).toBeCloseTo(30, 10);
+      expect(result).toBeLessThanOrEqual(0.15 * p.radiusPx);
+    });
+
+    it('does not cap a 120 kt leader on the 40 nm scope', () => {
+      expect(cappedLeaderLengthPx(120, p)).toBeCloseTo(10, 10);
+    });
+
+    it('does not cap a 15 kt leader', () => {
+      expect(cappedLeaderLengthPx(15, p)).toBeCloseTo(1.25, 10);
+    });
+
+    it('caps a 120 kt leader on the 10 nm scope', () => {
+      expect(cappedLeaderLengthPx(120, p10)).toBeCloseTo(30, 10);
+    });
+
+    it('returns 0 for zero or negative speed', () => {
+      expect(cappedLeaderLengthPx(0, p)).toBe(0);
+      expect(cappedLeaderLengthPx(-5, p)).toBe(0);
+    });
+
+    it('honours custom maxFraction', () => {
+      expect(cappedLeaderLengthPx(600, p, 1, 0.5)).toBeCloseTo(50, 10);
+    });
+
+    it('a 600 kt leader from 15 nm out does not reach own ship', () => {
+      const leader = cappedLeaderLengthPx(600, p);
+      const distancePx = 15 * pxPerNm(p);
+      expect(distancePx).toBeGreaterThan(leader);
+    });
+  });
+
+  describe('rectsOverlap', () => {
+    it('detects interior intersection', () => {
+      expect(
+        rectsOverlap(
+          { x: 0, y: 0, width: 10, height: 10 },
+          { x: 5, y: 5, width: 10, height: 10 },
+        ),
+      ).toBe(true);
+    });
+
+    it('returns false for edge-touching rects', () => {
+      expect(
+        rectsOverlap(
+          { x: 0, y: 0, width: 10, height: 10 },
+          { x: 10, y: 0, width: 10, height: 10 },
+        ),
+      ).toBe(false);
+    });
+
+    it('returns false for disjoint rects', () => {
+      expect(
+        rectsOverlap(
+          { x: 0, y: 0, width: 10, height: 10 },
+          { x: 20, y: 20, width: 5, height: 5 },
+        ),
+      ).toBe(false);
+    });
+
+    it('detects containment', () => {
+      expect(
+        rectsOverlap(
+          { x: 0, y: 0, width: 10, height: 10 },
+          { x: 2, y: 2, width: 2, height: 2 },
+        ),
+      ).toBe(true);
+    });
+  });
+
+  describe('ringLabelRect', () => {
+    const p = makeProjection(400, 400, 40, { x: 0, y: 0 }, 0);
+
+    it('centres the rect on the bearing point (north)', () => {
+      expect(ringLabelRect(p, 0, 100, 20, 10)).toEqual({
+        x: 190,
+        y: 95,
+        width: 20,
+        height: 10,
+      });
+    });
+
+    it('centres the rect on the bearing point (east)', () => {
+      const rect = ringLabelRect(p, 90, 100, 20, 10);
+      expect(rect.x).toBeCloseTo(290, 10);
+      expect(rect.y).toBeCloseTo(195, 10);
+    });
+  });
+
+  describe('pickRingLabelBearing', () => {
+    const p = makeProjection(400, 400, 40, { x: 0, y: 0 }, 0);
+
+    it('returns the first candidate when there are no obstacles', () => {
+      expect(pickRingLabelBearing(p, 100, 20, 10, [])).toBe(45);
+    });
+
+    it('skips a blocked first candidate', () => {
+      const obstacle = ringLabelRect(p, 45, 100, 20, 10);
+      expect(pickRingLabelBearing(p, 100, 20, 10, [obstacle])).toBe(135);
+    });
+
+    it('returns the only unblocked candidate', () => {
+      const obstacles: ScreenRect[] = [45, 135, 225, 315, 90, 0, 180].map(
+        (b) => ringLabelRect(p, b, 100, 20, 10),
+      );
+      expect(pickRingLabelBearing(p, 100, 20, 10, obstacles)).toBe(270);
+    });
+
+    it('returns the candidate with fewest overlaps when all are blocked', () => {
+      const obstacles: ScreenRect[] = [
+        ringLabelRect(p, 45, 100, 20, 10),
+        ringLabelRect(p, 45, 100, 20, 10),
+        ringLabelRect(p, 135, 100, 20, 10),
+        ringLabelRect(p, 225, 100, 20, 10),
+        ringLabelRect(p, 315, 100, 20, 10),
+        ringLabelRect(p, 90, 100, 20, 10),
+        ringLabelRect(p, 270, 100, 20, 10),
+        ringLabelRect(p, 0, 100, 20, 10),
+        ringLabelRect(p, 180, 100, 20, 10),
+      ];
+      expect(pickRingLabelBearing(p, 100, 20, 10, obstacles)).toBe(135);
+    });
+
+    it('honours custom candidates', () => {
+      const obstacle = ringLabelRect(p, 10, 100, 20, 10);
+      expect(pickRingLabelBearing(p, 100, 20, 10, [obstacle], [10, 100])).toBe(100);
+    });
+
+    it('returns 45 for an empty candidate list', () => {
+      expect(pickRingLabelBearing(p, 100, 20, 10, [], [])).toBe(45);
+    });
   });
 });

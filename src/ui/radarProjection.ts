@@ -130,3 +130,97 @@ export function isInsideScope(p: Projection, pos: Vec2): boolean {
   const dy = pos.y - p.origin.y;
   return Math.hypot(dx, dy) <= p.rangeNm + 1e-9;
 }
+
+export const LEADER_MINUTES = 1;
+export const LEADER_MAX_SCOPE_FRACTION = 0.15;
+
+export function cappedLeaderLengthPx(
+  speedKts: number,
+  p: Projection,
+  leaderMinutes = LEADER_MINUTES,
+  maxFraction = LEADER_MAX_SCOPE_FRACTION,
+): number {
+  if (speedKts <= 0) {
+    return 0;
+  }
+  return Math.min(
+    leaderLengthPx(speedKts, p, leaderMinutes),
+    p.radiusPx * maxFraction,
+  );
+}
+
+export interface ScreenRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function rectsOverlap(a: ScreenRect, b: ScreenRect): boolean {
+  return (
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+  );
+}
+
+export const RING_LABEL_CANDIDATE_BEARINGS: readonly number[] = [
+  45, 135, 225, 315, 90, 270, 0, 180,
+];
+
+export function ringLabelRect(
+  p: Projection,
+  bearingDeg: number,
+  ringRadiusPx: number,
+  widthPx: number,
+  heightPx: number,
+): ScreenRect {
+  const c = pointAtBearing(p, bearingDeg, ringRadiusPx);
+  return {
+    x: c.x - widthPx / 2,
+    y: c.y - heightPx / 2,
+    width: widthPx,
+    height: heightPx,
+  };
+}
+
+export function pickRingLabelBearing(
+  p: Projection,
+  ringRadiusPx: number,
+  widthPx: number,
+  heightPx: number,
+  obstacles: readonly ScreenRect[],
+  candidates: readonly number[] = RING_LABEL_CANDIDATE_BEARINGS,
+): number {
+  if (candidates.length === 0) {
+    return 45;
+  }
+
+  for (const bearing of candidates) {
+    const rect = ringLabelRect(p, bearing, ringRadiusPx, widthPx, heightPx);
+    const hasOverlap = obstacles.some((obs) => rectsOverlap(rect, obs));
+    if (!hasOverlap) {
+      return bearing;
+    }
+  }
+
+  let bestBearing = candidates[0] ?? 45;
+  let bestCount = Infinity;
+
+  for (const bearing of candidates) {
+    const rect = ringLabelRect(p, bearing, ringRadiusPx, widthPx, heightPx);
+    let count = 0;
+    for (const obs of obstacles) {
+      if (rectsOverlap(rect, obs)) {
+        count += 1;
+      }
+    }
+    if (count < bestCount) {
+      bestCount = count;
+      bestBearing = bearing;
+    }
+  }
+
+  return bestBearing;
+}
