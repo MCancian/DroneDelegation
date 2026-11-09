@@ -3,6 +3,7 @@ import { World } from '../world';
 import { STEP_S } from '../clock';
 import { bearingTo, fromBearingRange, rangeTo } from '../geo';
 import { setBehavior } from '../kinematics';
+import { WEAPONS_HOOKS } from '../weapons';
 
 export type CrewStation = 'CIC' | 'TAO-Air' | 'SWC' | 'EW' | 'Lookouts' | 'Bridge' | 'Radio';
 export type CrewPriority = 'routine' | 'priority' | 'flash';
@@ -25,6 +26,7 @@ export interface ScenarioContact {
   rcs?: Rcs;
   size?: SurfaceSize;
   pDetect?: number;
+  personsAboard?: number;
   behavior: Behavior;
   spawnAtS?: number;
 }
@@ -126,6 +128,7 @@ export function buildContact(def: ScenarioContact, ownShip: OwnShip): RadarConta
   if (def.rcs !== undefined) contact.rcs = def.rcs;
   if (def.size !== undefined) contact.size = def.size;
   if (def.pDetect !== undefined) contact.pDetect = def.pDetect;
+  if (def.personsAboard !== undefined) contact.personsAboard = def.personsAboard;
 
   return contact;
 }
@@ -208,7 +211,7 @@ export class ScenarioRunner {
   constructor(scenario: Scenario, world: World, hooks?: ScenarioHooks) {
     this.scenario = scenario;
     this.world = world;
-    this.hooks = hooks ?? STUB_HOOKS;
+    this.hooks = hooks ?? WEAPONS_HOOKS;
 
     for (const def of scenario.contacts) {
       if ((def.spawnAtS ?? 0) <= 0) {

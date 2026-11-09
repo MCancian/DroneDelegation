@@ -11,6 +11,8 @@ import {
   type SensorState,
   type TrackState,
 } from './sensors';
+import { createWeaponsState, stepWeapons, type WeaponsState } from './weapons';
+import type { WeaponsConfig } from './scenario/weaponsConfig';
 
 export const HISTORY_INTERVAL_S = 30;
 export const HISTORY_LENGTH = 6;
@@ -21,6 +23,7 @@ export interface WorldInit {
   contacts: readonly RadarContact[];
   missiles?: readonly Missile[];
   sensorConfig?: SensorConfig;
+  weaponsConfig?: WeaponsConfig;
 }
 
 export class World {
@@ -33,6 +36,7 @@ export class World {
   readonly rng: Rng;
   readonly sensorConfig: SensorConfig;
   readonly sensors: SensorState;
+  readonly weapons: WeaponsState;
 
   private readonly kinematicsRng: Rng;
   private readonly sensorRng: Rng;
@@ -46,6 +50,7 @@ export class World {
     this.sensorRng = mulberry32((init.seed ^ 0x85ebca6b) >>> 0);
     this.sensorConfig = init.sensorConfig ?? DEFAULT_SENSOR_CONFIG;
     this.sensors = createSensorState();
+    this.weapons = createWeaponsState(init.seed, init.weaponsConfig);
     this.ownShip = structuredClone(init.ownShip);
     this.contacts = structuredClone(init.contacts) as RadarContact[];
     this.missiles = structuredClone(init.missiles ?? []) as Missile[];
@@ -78,6 +83,8 @@ export class World {
         dtS,
       );
     }
+
+    stepWeapons(this, dtS);
 
     this.historyAccS += dtS;
     while (this.historyAccS >= HISTORY_INTERVAL_S - 1e-9) {
