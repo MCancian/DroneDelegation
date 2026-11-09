@@ -1,6 +1,5 @@
 import './styles.css';
 import { createRadar } from './ui/radar';
-import { DEMO_CONTACTS, DEMO_OWN_SHIP } from './ui/demoContacts';
 import { DEFAULT_RANGE_NM } from './ui/radarProjection';
 import { pickContact, PICK_TOLERANCE_PX, visibleContacts } from './ui/contactSelection';
 import { createContactPanel } from './ui/contactPanel';
@@ -8,8 +7,9 @@ import type { ContactPanel } from './ui/contactPanel';
 import { rangeTo } from './sim/geo';
 import { parseConfig, randomSeed } from './config';
 import { GameClock } from './sim/clock';
-import { World } from './sim/world';
 import { createHud } from './ui/hud';
+import { STRAIT_TRANSIT } from './sim/scenario/strait';
+import { loadScenario } from './sim/scenario/scenario';
 
 function setText(id: string, text: string): void {
   const element = document.getElementById(id);
@@ -20,16 +20,13 @@ function setText(id: string, text: string): void {
 
 const config = parseConfig(window.location.search, randomSeed());
 
-const world = new World({
-  seed: config.seed,
-  ownShip: DEMO_OWN_SHIP,
-  contacts: DEMO_CONTACTS,
-});
+const { world, runner } = loadScenario(STRAIT_TRANSIT, config.seed);
 
-const clock = new GameClock({ timescale: config.timescale });
+const clock = new GameClock({ timescale: config.timescale, durationS: STRAIT_TRANSIT.durationS });
 
 clock.onStep((dt) => {
   world.step(dt);
+  runner.update();
 });
 
 clock.onEnd((t) => {
