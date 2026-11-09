@@ -2,6 +2,10 @@ import './styles.css';
 import { createRadar } from './ui/radar';
 import { DEMO_CONTACTS, DEMO_OWN_SHIP } from './ui/demoContacts';
 import { DEFAULT_RANGE_NM } from './ui/radarProjection';
+import { pickContact, PICK_TOLERANCE_PX } from './ui/contactSelection';
+import { createContactPanel } from './ui/contactPanel';
+import type { ContactPanel } from './ui/contactPanel';
+import { rangeTo } from './sim/geo';
 
 function setText(id: string, text: string): void {
   const element = document.getElementById(id);
@@ -28,6 +32,15 @@ function markActiveRange(rangeNm: number): void {
     const buttonRange = Number(button.dataset.range);
     button.classList.toggle('active', buttonRange === rangeNm);
   });
+}
+
+let selectedId: string | null = null;
+let panel: ContactPanel | null = null;
+
+const panelRoot = document.getElementById('contact-panel');
+if (panelRoot instanceof HTMLElement) {
+  panel = createContactPanel(panelRoot);
+  panel.setActions([]);
 }
 
 if (canvas instanceof HTMLCanvasElement) {
@@ -59,12 +72,38 @@ if (canvas instanceof HTMLCanvasElement) {
     });
   }
 
+  canvas.addEventListener('click', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = event.clientX - rect.left;
+    const py = event.clientY - rect.top;
+
+    const world = radar.screenToWorld(px, py);
+    const worldOffset = radar.screenToWorld(px + PICK_TOLERANCE_PX, py);
+    const toleranceNm = rangeTo(world, worldOffset);
+
+    const picked = pickContact(DEMO_CONTACTS, world, toleranceNm);
+    selectedId = picked !== null ? picked.id : null;
+  });
+
   const frame = (): void => {
+    let selectedContact = selectedId !== null
+      ? DEMO_CONTACTS.find((c) => c.id === selectedId && c.alive) ?? null
+      : null;
+
+    if (selectedId !== null && selectedContact === null) {
+      selectedId = null;
+    }
+
     radar.render({
       ownShip: DEMO_OWN_SHIP,
       contacts: DEMO_CONTACTS,
-      selectedId: 'A-06',
+      selectedId,
     });
+
+    if (panel !== null) {
+      panel.update(selectedContact, DEMO_OWN_SHIP);
+    }
+
     requestAnimationFrame(frame);
   };
 
