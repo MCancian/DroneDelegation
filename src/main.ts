@@ -116,6 +116,7 @@ if (canvas instanceof HTMLCanvasElement) {
 
     clock.advance(delta);
     hud.setClock(clock.time);
+    hud.setHull(world.ownShip.hullPct);
 
     const tracks = world.visibleTracks();
 

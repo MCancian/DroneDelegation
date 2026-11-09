@@ -23,6 +23,8 @@ export type Actor =
   // Actor for events the scenario script itself causes (spawns, enemy launches, scripted crew reports).
   | 'scenario';
 
+export type PointDefenseMode = 'auto' | 'manual';
+
 export type IffInfo =
   | { kind: 'none' }
   | { kind: 'mode3'; code: string }
@@ -103,6 +105,8 @@ export interface Contact {
   size?: SurfaceSize;
   pDetect?: number;
   motion?: ContactMotion;
+  personsAboard?: number;
+  ownMissile?: boolean;
 }
 
 export type RadarContact = Contact & { faded?: boolean };

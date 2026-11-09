@@ -83,6 +83,7 @@ export function isDetectedOnSweep(
   cfg: SensorConfig = DEFAULT_SENSOR_CONFIG,
 ): boolean {
   if (!contact.alive) return false;
+  if (contact.ownMissile) return true;
   const range = rangeTo(ownShip.position, contact.position);
   if (range > detectionRangeNm(contact, cfg)) return false;
   if (range <= cfg.visualRangeNm) return true;
