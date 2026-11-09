@@ -45,6 +45,45 @@ export interface SensorInfo {
   visual: VisualInfo;
 }
 
+export type Rcs = 'normal' | 'low';
+
+export type SurfaceSize = 'ship' | 'small';
+
+export interface BehaviorCommon {
+  turnRateDegPerSec?: number;
+  targetAltitudeFt?: number;
+  climbRateFpm?: number;
+}
+
+export type Behavior =
+  | ({ kind: 'straight'; courseDeg?: number; speedKts?: number } & BehaviorCommon)
+  | ({ kind: 'waypoints'; points: Vec2[]; speedKts?: number; arriveRadiusNm?: number } & BehaviorCommon)
+  | ({ kind: 'loiter'; center: Vec2; radiusNm: number; speedKts: number; retargetS?: number } & BehaviorCommon)
+  | ({ kind: 'closeOnOwnship'; speedKts: number; mode?: 'pure' | 'lead' } & BehaviorCommon)
+  | ({ kind: 'turnAway'; courseDeg: number; speedKts?: number } & BehaviorCommon);
+
+export type BehaviorTrigger =
+  | { kind: 'time'; atS: number }
+  | { kind: 'rangeToOwnshipBelow'; rangeNm: number };
+
+export interface ScheduledBehavior {
+  when: BehaviorTrigger;
+  behavior: Behavior;
+}
+
+export interface MotionState {
+  waypointIndex: number;
+  waypointsDone: boolean;
+  loiterCourseDeg: number;
+  loiterTimerS: number;
+}
+
+export interface ContactMotion {
+  behavior: Behavior;
+  schedule?: ScheduledBehavior[];
+  state?: MotionState;
+}
+
 export interface Contact {
   id: string;
   trackId: string;
@@ -58,6 +97,10 @@ export interface Contact {
   sensors: SensorInfo;
   alive: boolean;
   history: Vec2[];
+  rcs?: Rcs;
+  size?: SurfaceSize;
+  pDetect?: number;
+  motion?: ContactMotion;
 }
 
 export type RadarContact = Contact & { faded?: boolean };

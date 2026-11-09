@@ -1,6 +1,16 @@
 import type { Actor, GameEvent, Missile, OwnShip, RadarContact } from './types';
 import { move } from './geo';
 import { mulberry32, type Rng } from './rng';
+import { stepKinematics } from './kinematics';
+import {
+  createSensorState,
+  sweep,
+  visibleTracks as sensorVisibleTracks,
+  DEFAULT_SENSOR_CONFIG,
+  type SensorConfig,
+  type SensorState,
+  type TrackState,
+} from './sensors';
 
 export const HISTORY_INTERVAL_S = 30;
 export const HISTORY_LENGTH = 6;
@@ -10,6 +20,7 @@ export interface WorldInit {
   ownShip: OwnShip;
   contacts: readonly RadarContact[];
   missiles?: readonly Missile[];
+  sensorConfig?: SensorConfig;
 }
 
 export class World {
@@ -20,15 +31,26 @@ export class World {
   missiles: Missile[];
   readonly events: GameEvent[] = [];
   readonly rng: Rng;
+  readonly sensorConfig: SensorConfig;
+  readonly sensors: SensorState;
 
+  private readonly kinematicsRng: Rng;
+  private readonly sensorRng: Rng;
+  private sweepAccS: number = 0;
   private historyAccS: number = 0;
 
   constructor(init: WorldInit) {
     this.seed = init.seed;
     this.rng = mulberry32(init.seed);
+    this.kinematicsRng = mulberry32((init.seed ^ 0x9e3779b9) >>> 0);
+    this.sensorRng = mulberry32((init.seed ^ 0x85ebca6b) >>> 0);
+    this.sensorConfig = init.sensorConfig ?? DEFAULT_SENSOR_CONFIG;
+    this.sensors = createSensorState();
     this.ownShip = structuredClone(init.ownShip);
     this.contacts = structuredClone(init.contacts) as RadarContact[];
     this.missiles = structuredClone(init.missiles ?? []) as Missile[];
+
+    sweep(this.sensors, this.contacts, this.ownShip, 0, this.sensorRng, this.sensorConfig);
   }
 
   step(dtS: number): void {
@@ -44,13 +66,7 @@ export class World {
     );
 
     for (const contact of this.contacts) {
-      if (!contact.alive) continue;
-      contact.position = move(
-        contact.position,
-        contact.courseDeg,
-        contact.speedKts,
-        dtS,
-      );
+      stepKinematics(contact, this.ownShip, this.time, dtS, this.kinematicsRng);
     }
 
     for (const missile of this.missiles) {
@@ -74,6 +90,23 @@ export class World {
         }
       }
     }
+
+    this.sweepAccS += dtS;
+    while (this.sweepAccS >= this.sensorConfig.sweepPeriodS - 1e-9) {
+      this.sweepAccS -= this.sensorConfig.sweepPeriodS;
+      sweep(this.sensors, this.contacts, this.ownShip, this.time, this.sensorRng, this.sensorConfig);
+    }
+  }
+
+  /**
+   * Only these may be given to the UI or the LLM; `contacts` is ground truth.
+   */
+  visibleTracks(): RadarContact[] {
+    return sensorVisibleTracks(this.sensors, this.contacts, this.time);
+  }
+
+  trackFor(contactId: string): TrackState | undefined {
+    return this.sensors.tracks[contactId];
   }
 
   logEvent<T>(type: string, actor: Actor, payload: T): GameEvent<T> {

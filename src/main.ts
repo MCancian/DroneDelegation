@@ -105,7 +105,8 @@ if (canvas instanceof HTMLCanvasElement) {
     const worldOffset = radar.screenToWorld(px + PICK_TOLERANCE_PX, py);
     const toleranceNm = rangeTo(worldPt, worldOffset);
 
-    const visible = visibleContacts(world.contacts, world.ownShip.position, radar.getRange());
+    const tracks = world.visibleTracks();
+    const visible = visibleContacts(tracks, world.ownShip.position, radar.getRange());
     const picked = pickContact(visible, worldPt, toleranceNm);
     selectedId = picked !== null ? picked.id : null;
   });
@@ -119,8 +120,10 @@ if (canvas instanceof HTMLCanvasElement) {
     clock.advance(delta);
     hud.setClock(clock.time);
 
+    const tracks = world.visibleTracks();
+
     let selectedContact = selectedId !== null
-      ? visibleContacts(world.contacts, world.ownShip.position, radar.getRange()).find((c) => c.id === selectedId) ?? null
+      ? visibleContacts(tracks, world.ownShip.position, radar.getRange()).find((c) => c.id === selectedId) ?? null
       : null;
 
     if (selectedId !== null && selectedContact === null) {
@@ -129,7 +132,7 @@ if (canvas instanceof HTMLCanvasElement) {
 
     radar.render({
       ownShip: world.ownShip,
-      contacts: world.contacts,
+      contacts: tracks,
       selectedId,
     });
 
