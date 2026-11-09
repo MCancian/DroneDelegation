@@ -9,6 +9,7 @@ import {
   PICK_TOLERANCE_PX,
   pickContact,
   toleranceNmFromPx,
+  visibleContacts,
 } from '../src/ui/contactSelection';
 
 function makeContact(overrides: Partial<Contact> & { id: string; trackId: string }): Contact {
@@ -114,6 +115,49 @@ describe('pickContact', () => {
 
     expect(pickContact(contacts, { x: 0, y: 0 }, Infinity)).toBeNull();
     expect(pickContact(contacts, { x: 0, y: 0 }, NaN)).toBeNull();
+  });
+});
+
+describe('visibleContacts', () => {
+  it('excludes dead contacts', () => {
+    const contacts: Contact[] = [
+      makeContact({ id: 'A', trackId: 'A', position: { x: 1, y: 0 }, alive: false }),
+      makeContact({ id: 'B', trackId: 'B', position: { x: 1, y: 0 }, alive: true }),
+    ];
+
+    const result = visibleContacts(contacts, { x: 0, y: 0 }, 10);
+    expect(result.map((contact) => contact.id)).toEqual(['B']);
+  });
+
+  it('excludes contacts beyond range', () => {
+    const contacts: Contact[] = [
+      makeContact({ id: 'A', trackId: 'A', position: { x: 10, y: 0 } }),
+      makeContact({ id: 'B', trackId: 'B', position: { x: 10.1, y: 0 } }),
+    ];
+
+    const result = visibleContacts(contacts, { x: 0, y: 0 }, 10);
+    expect(result.map((contact) => contact.id)).toEqual(['A']);
+  });
+
+  it('includes a contact exactly at the range boundary', () => {
+    const contacts: Contact[] = [
+      makeContact({ id: 'A', trackId: 'A', position: { x: 10, y: 0 } }),
+    ];
+
+    const result = visibleContacts(contacts, { x: 0, y: 0 }, 10);
+    expect(result.map((contact) => contact.id)).toEqual(['A']);
+  });
+
+  it('does not pick a contact beyond range even when clicked directly on it', () => {
+    const contacts: Contact[] = [
+      makeContact({ id: 'hidden', trackId: 'hidden', position: { x: 12, y: 0 } }),
+      makeContact({ id: 'visible', trackId: 'visible', position: { x: 1, y: 0 } }),
+    ];
+
+    const visible = visibleContacts(contacts, { x: 0, y: 0 }, 10);
+    const picked = pickContact(visible, { x: 12, y: 0 }, 1);
+
+    expect(picked).toBeNull();
   });
 });
 

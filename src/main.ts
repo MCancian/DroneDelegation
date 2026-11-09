@@ -2,7 +2,7 @@ import './styles.css';
 import { createRadar } from './ui/radar';
 import { DEMO_CONTACTS, DEMO_OWN_SHIP } from './ui/demoContacts';
 import { DEFAULT_RANGE_NM } from './ui/radarProjection';
-import { pickContact, PICK_TOLERANCE_PX } from './ui/contactSelection';
+import { pickContact, PICK_TOLERANCE_PX, visibleContacts } from './ui/contactSelection';
 import { createContactPanel } from './ui/contactPanel';
 import type { ContactPanel } from './ui/contactPanel';
 import { rangeTo } from './sim/geo';
@@ -81,13 +81,14 @@ if (canvas instanceof HTMLCanvasElement) {
     const worldOffset = radar.screenToWorld(px + PICK_TOLERANCE_PX, py);
     const toleranceNm = rangeTo(world, worldOffset);
 
-    const picked = pickContact(DEMO_CONTACTS, world, toleranceNm);
+    const visible = visibleContacts(DEMO_CONTACTS, DEMO_OWN_SHIP.position, radar.getRange());
+    const picked = pickContact(visible, world, toleranceNm);
     selectedId = picked !== null ? picked.id : null;
   });
 
   const frame = (): void => {
     let selectedContact = selectedId !== null
-      ? DEMO_CONTACTS.find((c) => c.id === selectedId && c.alive) ?? null
+      ? visibleContacts(DEMO_CONTACTS, DEMO_OWN_SHIP.position, radar.getRange()).find((c) => c.id === selectedId) ?? null
       : null;
 
     if (selectedId !== null && selectedContact === null) {
