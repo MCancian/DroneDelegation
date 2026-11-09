@@ -107,6 +107,8 @@ export interface Contact {
   motion?: ContactMotion;
   personsAboard?: number;
   ownMissile?: boolean;
+  // Ground truth: what lookouts see within visual range. Never passed to UI/LLM directly.
+  visualDescription?: string;
 }
 
 export type RadarContact = Contact & { faded?: boolean };

@@ -18,7 +18,7 @@ function setText(id: string, text: string): void {
   }
 }
 
-const config = parseConfig(window.location.search, randomSeed());
+const config = parseConfig(window.location.search, randomSeed(), import.meta.env.DEV);
 
 const { world, runner } = loadScenario(STRAIT_TRANSIT, config.seed);
 
