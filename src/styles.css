@@ -115,3 +115,40 @@ p {
   margin: 0;
   color: var(--muted);
 }
+
+#range-buttons {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.range-caption {
+  color: var(--muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#range-buttons button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+}
+
+#range-buttons button:hover {
+  border-color: var(--accent);
+}
+
+#range-buttons button.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
