@@ -34,11 +34,12 @@ body {
 #topbar {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  padding: 0.5rem 1rem;
+  gap: 1rem;
+  padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
-  font-size: 0.95rem;
+  font-size: 0.75rem;
+  flex-wrap: wrap;
 }
 
 #clock {
@@ -148,19 +149,107 @@ p {
   border-color: var(--accent);
 }
 
+#range-buttons button:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
 #range-buttons button.active {
   background: var(--accent);
   color: var(--bg);
   border-color: var(--accent);
 }
 
+/* --- Command controls (topbar) --- */
+
+#command-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+}
+
+#weapon-inventory {
+  color: var(--muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+#command-controls button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#command-controls button:hover {
+  border-color: var(--accent);
+}
+
+#command-controls button:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+#command-controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  border-color: var(--border);
+}
+
+#command-controls input[type="number"] {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.3rem;
+  width: 60px;
+  min-width: 55px;
+  max-width: 70px;
+}
+
+#command-controls input[type="number"]:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+#command-controls label {
+  color: var(--muted);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+#command-controls [role="status"] {
+  color: #ff8800;
+  font-size: 0.7rem;
+  min-width: 6rem;
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Contact panel --- */
+
 .contact-panel {
   position: absolute;
   bottom: 0.75rem;
   left: 0.75rem;
   z-index: 2;
-  max-width: 320px;
-  background: rgba(5, 8, 5, 0.85);
+  max-width: 380px;
+  max-height: 70%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: rgba(5, 8, 5, 0.88);
   border: 1px solid var(--border);
   padding: 0.5rem 0.65rem;
   font-size: 0.7rem;
@@ -200,6 +289,7 @@ p {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
+  align-items: flex-start;
 }
 
 .contact-actions button {
@@ -214,6 +304,11 @@ p {
 
 .contact-actions button:hover {
   border-color: var(--accent);
+}
+
+.contact-actions button:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .contact-actions button:disabled {

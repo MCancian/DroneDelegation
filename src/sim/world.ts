@@ -13,6 +13,8 @@ import {
 } from './sensors';
 import { createWeaponsState, stepWeapons, type WeaponsState } from './weapons';
 import type { WeaponsConfig } from './scenario/weaponsConfig';
+import { stepCommands } from './commands';
+import { EventBus } from './events';
 
 export const HISTORY_INTERVAL_S = 30;
 export const HISTORY_LENGTH = 6;
@@ -33,6 +35,7 @@ export class World {
   contacts: RadarContact[];
   missiles: Missile[];
   readonly events: GameEvent[] = [];
+  readonly eventBus = new EventBus();
   readonly rng: Rng;
   readonly sensorConfig: SensorConfig;
   readonly sensors: SensorState;
@@ -103,6 +106,8 @@ export class World {
       this.sweepAccS -= this.sensorConfig.sweepPeriodS;
       sweep(this.sensors, this.contacts, this.ownShip, this.time, this.sensorRng, this.sensorConfig);
     }
+
+    stepCommands(this);
   }
 
   /**
@@ -119,6 +124,7 @@ export class World {
   logEvent<T>(type: string, actor: Actor, payload: T): GameEvent<T> {
     const event: GameEvent<T> = { t: this.time, type, actor, payload };
     this.events.push(event);
+    this.eventBus.emit(event);
     return event;
   }
 
