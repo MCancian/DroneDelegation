@@ -60,14 +60,42 @@ export interface StreamError {
 
 export type StreamEvent = StreamDelta | StreamDone | StreamError;
 
+/**
+ * Combine adjacent leading system messages into exactly one system message
+ * joined by two LF. Non-leading system messages are left in place.
+ * Does not mutate the input array.
+ */
+export function normalizeLeadingSystemMessages(messages: ChatMessage[]): ChatMessage[] {
+  let leadingCount = 0;
+  while (leadingCount < messages.length && messages[leadingCount].role === 'system') {
+    leadingCount++;
+  }
+
+  if (leadingCount <= 1) {
+    return [...messages];
+  }
+
+  const combinedContent = messages
+    .slice(0, leadingCount)
+    .map((m) => m.content)
+    .join('\n\n');
+
+  return [
+    { role: 'system', content: combinedContent },
+    ...messages.slice(leadingCount)
+  ];
+}
+
 export async function* streamUpstream(
   options: ResolvedJarvisOptions,
   body: ChatRequest,
   signal: AbortSignal
 ): AsyncGenerator<StreamEvent> {
+  const normalizedMessages = normalizeLeadingSystemMessages(body.messages);
+
   const payload: Record<string, unknown> = {
     model: options.model,
-    messages: body.messages,
+    messages: normalizedMessages,
     stream: true
   };
 
