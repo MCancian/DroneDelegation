@@ -6,6 +6,7 @@ import { setBehavior } from '../kinematics';
 import { WEAPONS_HOOKS } from '../weapons';
 import { stepCrew } from './crew';
 import type { CrewReportPayload } from '../events';
+import type { WeaponsConfig } from './weaponsConfig';
 
 export type CrewStation = 'CIC' | 'TAO-Air' | 'SWC' | 'EW' | 'Lookouts' | 'Bridge' | 'Radio';
 export type CrewPriority = 'routine' | 'priority' | 'flash';
@@ -65,6 +66,7 @@ export interface Scenario {
   name: string;
   durationS: number;
   ownShip: OwnShip;
+  weaponsConfig?: WeaponsConfig;
   contacts: ScenarioContact[];
   triggers: ScenarioTrigger[];
 }
@@ -392,7 +394,7 @@ export function loadScenario(
     .filter((c) => (c.spawnAtS ?? 0) <= 0)
     .map((c) => buildContact(c, scenario.ownShip));
 
-  const world = new World({ seed, ownShip: scenario.ownShip, contacts: initialContacts });
+  const world = new World({ seed, ownShip: scenario.ownShip, contacts: initialContacts, weaponsConfig: scenario.weaponsConfig ? structuredClone(scenario.weaponsConfig) : undefined });
   const runner = new ScenarioRunner(scenario, world, hooks);
   runner.update();
 

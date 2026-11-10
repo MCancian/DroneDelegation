@@ -2,6 +2,7 @@ import type { Vec2 } from '../types';
 import { fromBearingRange, move } from '../geo';
 import { GAME_DURATION_S } from '../clock';
 import type { Scenario } from './scenario';
+import { WEAPONS_CONFIG } from './weaponsConfig';
 
 export const STRAIT_IDS = {
   a1: 'a1',
@@ -46,6 +47,13 @@ export const STRAIT_TRANSIT: Scenario = {
   id: 'strait-transit',
   name: 'Strait Transit',
   durationS: GAME_DURATION_S,
+  // Strait-specific balance: a decisive gun response to the fast craft and
+  // stronger close-in defense. Both outcomes remain probabilistic.
+  weaponsConfig: {
+    ...WEAPONS_CONFIG,
+    gun: { ...WEAPONS_CONFIG.gun, pkPerBurst: 0.9 },
+    ciws: { ...WEAPONS_CONFIG.ciws, pkPerMissile: 0.85 },
+  },
   ownShip: {
     position: { x: 0, y: 0 },
     courseDeg: OWN_SHIP_COURSE_DEG,
