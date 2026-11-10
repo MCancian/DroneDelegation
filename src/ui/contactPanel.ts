@@ -1,4 +1,4 @@
-import type { Contact, OwnShip } from '../sim/types';
+import type { OwnShip, SensorTrack } from '../sim/types';
 import { describeContact } from './contactSelection';
 
 export interface ContactAction {
@@ -10,7 +10,7 @@ export interface ContactAction {
 }
 
 export interface ContactPanel {
-  update(contact: Contact | null, ownShip: OwnShip): void;
+  update(contact: SensorTrack | null, ownShip: OwnShip): void;
   setActions(actions: readonly ContactAction[]): void;
   destroy(): void;
 }
@@ -60,7 +60,7 @@ export function createContactPanel(root: HTMLElement): ContactPanel {
   const callbackRefs = new Map<string, () => void>();
   const buttonRefs = new Map<string, HTMLButtonElement>();
 
-  function update(contact: Contact | null, ownShip: OwnShip): void {
+  function update(contact: SensorTrack | null, ownShip: OwnShip): void {
     if (contact === null) {
       header.textContent = 'No contact selected';
       grid.style.display = 'none';

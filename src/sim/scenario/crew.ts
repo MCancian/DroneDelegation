@@ -1,5 +1,5 @@
 import type { World } from '../world';
-import type { RadarContact, Vec2, IffInfo, AisInfo, EsmInfo, VisualInfo } from '../types';
+import type { SensorTrack, Vec2, IffInfo, AisInfo, EsmInfo, VisualInfo } from '../types';
 import { bearingTo, rangeTo, cpa, closingSpeed, velocityFrom, angleDiff } from '../geo';
 import type { CrewStation, CrewPriority } from './scenario';
 import { executeCommand } from '../commands';
@@ -15,7 +15,7 @@ export interface CrewReport {
 interface SafeSnap {
   id: string; trackId: string; domain: string; position: Vec2;
   courseDeg: number; speedKts: number; altitudeFt: number;
-  sensors: RadarContact['sensors']; ownMissile?: boolean;
+  sensors: SensorTrack['sensors']; ownMissile?: boolean;
 }
 
 interface MissileAssoc { missileId: string; launcherId: string; }
@@ -64,14 +64,14 @@ function cdOk(st: CrewState, key: string, t: number, cd: number): boolean {
   return true;
 }
 
-function snap(t: RadarContact): SafeSnap {
+function snap(t: SensorTrack): SafeSnap {
   return { id: t.id, trackId: t.trackId, domain: t.domain,
     position: { x: t.position.x, y: t.position.y },
     courseDeg: t.courseDeg, speedKts: t.speedKts, altitudeFt: t.altitudeFt,
     sensors: structuredClone(t.sensors), ownMissile: t.ownMissile };
 }
 
-function defaultSnap(t: RadarContact): SafeSnap {
+function defaultSnap(t: SensorTrack): SafeSnap {
   return { id: t.id, trackId: t.trackId, domain: t.domain,
     position: { x: t.position.x, y: t.position.y },
     courseDeg: t.courseDeg, speedKts: t.speedKts, altitudeFt: t.altitudeFt,
@@ -175,7 +175,7 @@ function processEvents(world: World, st: CrewState): void {
       const target = p.target as string;
       const trackId = p.trackId as string;
       const outcome = p.outcome as string;
-      const iff = p.iff as RadarContact['sensors']['iff'] | undefined;
+      const iff = p.iff as SensorTrack['sensors']['iff'] | undefined;
 
       if (action === 'iff_challenge') {
         if (outcome === 'iff' && iff) {
@@ -242,7 +242,7 @@ function processEvents(world: World, st: CrewState): void {
   }
 }
 
-function processTrack(world: World, st: CrewState, track: RadarContact, t: number): void {
+function processTrack(world: World, st: CrewState, track: SensorTrack, t: number): void {
   const prev = st.prev.get(track.id) ?? defaultSnap(track);
   const ownPos = world.ownShip.position;
   const rng = rangeTo(ownPos, track.position);
@@ -308,7 +308,7 @@ function processTrack(world: World, st: CrewState, track: RadarContact, t: numbe
   processClassification(world, track);
 }
 
-function processSensorInfo(world: World, st: CrewState, track: RadarContact): void {
+function processSensorInfo(world: World, st: CrewState, track: SensorTrack): void {
   const cur = track.sensors;
   const ann = getAnnounced(st, track.id);
 
@@ -359,7 +359,7 @@ function processSensorInfo(world: World, st: CrewState, track: RadarContact): vo
   }
 }
 
-function processClassification(world: World, track: RadarContact): void {
+function processClassification(world: World, track: SensorTrack): void {
   if (track.classification !== 'unknown') return;
   if (track.sensors.ais.kind === 'vessel') {
     executeCommand(world, { action: 'classify', target: track.id, classification: 'neutral' }, 'crew-auto');
@@ -368,8 +368,8 @@ function processClassification(world: World, track: RadarContact): void {
   }
 }
 
-function processMissileFlash(world: World, st: CrewState, tracks: RadarContact[], t: number): void {
-  const newMissiles: RadarContact[] = [];
+function processMissileFlash(world: World, st: CrewState, tracks: SensorTrack[], t: number): void {
+  const newMissiles: SensorTrack[] = [];
   for (const tr of tracks) {
     if (tr.domain !== 'missile' || tr.ownMissile) continue;
     if (st.reportedMissiles.has(tr.id)) continue;
@@ -377,7 +377,7 @@ function processMissileFlash(world: World, st: CrewState, tracks: RadarContact[]
   }
 
   if (newMissiles.length > 0) {
-    const groups: { bearing: number; tracks: RadarContact[] }[] = [];
+    const groups: { bearing: number; tracks: SensorTrack[] }[] = [];
     for (const m of newMissiles) {
       const brg = bearingTo(world.ownShip.position, m.position);
       let found = false;

@@ -1,4 +1,4 @@
-import type { Contact, OwnShip, Vec2 } from '../sim/types';
+import type { OwnShip, SensorTrack, Vec2 } from '../sim/types';
 import { bearingTo, cpa, rangeTo, velocityFrom } from '../sim/geo';
 
 export const PICK_TOLERANCE_PX = 12;
@@ -16,7 +16,7 @@ export interface ContactDetails {
   rows: ContactDetailRow[];
 }
 
-export function pickContact<T extends Contact>(
+export function pickContact<T extends SensorTrack>(
   contacts: readonly T[],
   worldPoint: Vec2,
   toleranceNm: number,
@@ -40,7 +40,7 @@ export function pickContact<T extends Contact>(
   return best;
 }
 
-export function visibleContacts<T extends Contact>(
+export function visibleContacts<T extends SensorTrack>(
   contacts: readonly T[],
   ownShipPosition: Vec2,
   rangeNm: number,
@@ -103,7 +103,7 @@ export function formatCpa(ownPos: Vec2, ownVel: Vec2, tgtPos: Vec2, tgtVel: Vec2
   return result.rangeNm.toFixed(1) + ' nm in ' + formatCpaTime(result.tCpaSec);
 }
 
-function formatIff(iff: Contact['sensors']['iff']): string {
+function formatIff(iff: SensorTrack['sensors']['iff']): string {
   switch (iff.kind) {
     case 'none':
       return '\u2014';
@@ -114,7 +114,7 @@ function formatIff(iff: Contact['sensors']['iff']): string {
   }
 }
 
-function formatAis(ais: Contact['sensors']['ais']): string {
+function formatAis(ais: SensorTrack['sensors']['ais']): string {
   switch (ais.kind) {
     case 'none':
       return '\u2014';
@@ -123,7 +123,7 @@ function formatAis(ais: Contact['sensors']['ais']): string {
   }
 }
 
-function formatEsm(esm: Contact['sensors']['esm']): string {
+function formatEsm(esm: SensorTrack['sensors']['esm']): string {
   switch (esm.kind) {
     case 'none':
       return '\u2014';
@@ -132,7 +132,7 @@ function formatEsm(esm: Contact['sensors']['esm']): string {
   }
 }
 
-function formatVisual(visual: Contact['sensors']['visual']): string {
+function formatVisual(visual: SensorTrack['sensors']['visual']): string {
   switch (visual.kind) {
     case 'none':
       return '\u2014';
@@ -141,7 +141,7 @@ function formatVisual(visual: Contact['sensors']['visual']): string {
   }
 }
 
-export function describeContact(contact: Contact, ownShip: OwnShip): ContactDetails {
+export function describeContact(contact: SensorTrack, ownShip: OwnShip): ContactDetails {
   const bearing = bearingTo(ownShip.position, contact.position);
   const range = rangeTo(ownShip.position, contact.position);
 
