@@ -29,6 +29,7 @@ import { createProposals } from './ui/proposals';
 import { Doctrine } from './ai/doctrine';
 import { analyze } from './report/analyze';
 import { createReport } from './ui/report';
+import { streamDebrief } from './ai/debrief';
 
 const config = parseConfig(window.location.search, randomSeed(), import.meta.env.DEV);
 
@@ -176,7 +177,7 @@ clock.onEnd(() => {
   const app = document.getElementById('app');
   if (app) app.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('button, input, select, textarea').forEach(el => { el.disabled = true; });
   const report = analyze(world.events, { scenario: STRAIT_TRANSIT, seed: config.seed, endedAtS: world.time, hullPct: world.ownShip.hullPct, shipLost: world.weapons.shipLost });
-  createReport(report, { onReplay: () => {
+  createReport(report, { debrief: streamDebrief, onReplay: () => {
     const url = new URL(window.location.href);
     let next = randomSeed();
     if (next === config.seed) next = (next + 1) >>> 0;
