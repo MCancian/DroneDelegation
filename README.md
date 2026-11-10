@@ -78,6 +78,14 @@ Point defense remains a separate AUTO/MANUAL control. Direct player actions and
 explicit chat orders remain available at every authority level. Authority changes
 and command snapshots are retained in the event log.
 
+Above HOLD, the tactical assistant checks every 20 game seconds and on new
+threat observations. Replies appear as **[AUTO]** in chat. Proposal cards sit
+above the input; VETO cards flash and display their countdown. Deadlines use
+game time. Denying or cancelling a proposal suppresses repeat automatic
+proposals for that track during the playthrough. Changing a domain's authority
+cancels its pending proposals, and execution rechecks target and weapon validity.
+Autonomous execution results and failures appear in chat.
+
 ## Backend configuration
 
 | Variable | Default | Notes |

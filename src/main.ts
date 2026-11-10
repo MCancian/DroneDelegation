@@ -23,13 +23,9 @@ import type { Classification, SensorTrack } from './sim/types';
 import { SYSTEM_PROMPT } from './ai/systemPrompt';
 import { SituationHistory, serializeSituation } from './ai/situation';
 import { handleChatReply } from './ai/chatOrders';
-
-function setText(id: string, text: string): void {
-  const element = document.getElementById(id);
-  if (element) {
-    element.textContent = text;
-  }
-}
+import { ProposalManager } from './ai/proposals';
+import { TacticalLoop } from './ai/tacticalLoop';
+import { createProposals } from './ui/proposals';
 
 const config = parseConfig(window.location.search, randomSeed(), import.meta.env.DEV);
 
@@ -47,6 +43,8 @@ clock.onStep((dt) => {
   if (world.weapons.shipLost) {
     clock.finish();
   }
+  proposals.update();
+  tacticalLoop.update();
 });
 
 let scenarioEndReported = false;
@@ -126,6 +124,34 @@ if (chatRoot instanceof HTMLElement) {
     },
   });
 }
+
+const isEnded = (): boolean => clock.ended || world.weapons.shipLost || world.time >= STRAIT_TRANSIT.durationS - 1e-9;
+const proposals = new ProposalManager(world, isEnded);
+const proposalPanel = chatRoot instanceof HTMLElement ? createProposals(chatRoot, proposals, isEnded) : null;
+for (const type of ['proposal_executed', 'proposal_failed'] as const) {
+  world.eventBus.on(type, (event) => {
+    const payload = event.payload as { command?: Command; error?: string };
+    const command = payload.command;
+    if (!command) return;
+    const target = 'target' in command ? world.trackFor(command.target)?.trackId ?? 'contact' : 'own ship';
+    const source = event.actor === 'doctrine' ? 'Doctrine' : '[AUTO]';
+    chat?.appendNotice(type === 'proposal_executed'
+      ? `${source} executed: ${command.action} ${target}`
+      : `${source} could not execute ${command.action} ${target}: ${payload.error ?? 'validation failed'}`);
+  });
+}
+const tacticalLoop = new TacticalLoop(world, proposals, {
+  getHostileActs: () => situationHistory.acts(),
+  onReply: (text) => chat?.appendAuto(text),
+  onNotice: (text) => chat?.appendNotice(text),
+  isEnded,
+});
+clock.onEnd(() => {
+  tacticalLoop.stop();
+  proposals.update();
+  proposalPanel?.update();
+});
+window.addEventListener('pagehide', () => tacticalLoop.stop());
 
 // Command controls in topbar
 const topbar = document.getElementById('topbar');
@@ -377,6 +403,7 @@ if (canvas instanceof HTMLCanvasElement) {
     hud.setClock(clock.time);
     hud.setHull(world.ownShip.hullPct);
     autonomyControls?.update();
+    proposalPanel?.update();
 
     const tracks = world.visibleTracks();
 
