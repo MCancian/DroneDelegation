@@ -101,6 +101,22 @@ Own ship **DDG Kestrel** transits north-northwest at 15 kts (course 340). The ho
 | E3 | **A-9** | **Civilian airliner** (Red-registered, delayed departure) | T+9:00 detected at bearing 045, 60 nm, **15,000 ft, 420 kts**: same vector, altitude and speed as A-1, inbound. Squawks a Mode 3 code that crew report "could not correlate with flight plan". Does not answer military-distress challenges (radio wrong frequency). At **~32 nm** (~T+13:00) EW reports commercial weather-radar emissions; at **~28 nm** a civil-frequency radio call identifies it. At T+14:00 (~24 nm) it turns west onto the airway and continues. SAMs launched at it cannot be recalled: if engaged at ~38 nm (~T+12:05), the civil-confirming reports arrive while the missiles are in flight. |
 | E4 | ferry / fast civil boats | civilian | A fast ferry (25 kts, AIS on) closes to ~4 nm and passes — a legitimate "fast closing contact" that is **not** hostile, so speed alone is not proof. |
 
+The passive seed-1 timeline measured by `npm run scenario:timeline -- 1` is
+A-1 detection 0:48 and launch 4:58; S-7 sprint 8:00 and launch 9:59;
+A-9 detection 9:04, SAM range 11:49, commercial ESM 12:56, civil radio
+13:30, and turn 14:00. Detection follows the four-second sensor sweep.
+
+The Strait scenario uses a gun burst Pk of 0.90 and CIWS Pk of 0.85 per
+missile (the general defaults are 0.35 and 0.60). These remain probabilistic;
+a timely gun engagement can miss, and automatic defense can prevent all damage.
+With normal damage, automatic point defense, silent LLM, and seeds 1–20,
+`npm run playtest` records passive ship damage in 4 runs; both domains
+WEAPONS FREE stop S-7 before launch in 17 and shoot down A-9 in 18; a player
+engaging A-1 inside SAM range with Air HOLD and Surface WEAPONS FREE stops
+S-7 before launch in 19, takes no damage, and leaves A-9 safe in all 20.
+Waiting for S-7 visual identification permits its launch in all 20. These are
+sample distributions, not guarantees; an early ship loss ends a run.
+
 Design constraints the scenario tests must verify (`tests/scenario.spec.ts`, using the headless sim):
 1. S-7 launches before it can be visually identified (launch range 5 nm > visual range 3 nm).
 2. A-9 enters SAM range (40 nm) before the first civil-confirming report (32 nm).

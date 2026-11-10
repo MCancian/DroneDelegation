@@ -14,7 +14,8 @@
     "test": "vitest run",
     "tooling:test": "python3 -B -m unittest discover -s tests/tooling -p 'test_*.py' -v",
     "verify": "npm run tooling:test && npm run typecheck && npm test && npm run build",
-    "scenario:timeline": "tsx scripts/scenarioTimeline.ts"
+    "scenario:timeline": "tsx scripts/scenarioTimeline.ts",
+    "playtest": "tsx scripts/playtest.ts"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",

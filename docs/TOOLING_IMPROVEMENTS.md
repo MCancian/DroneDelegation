@@ -283,3 +283,46 @@ Debrief browser checks use controlled SSE responses; live model prose was not
 part of these deterministic proofs. Implementation and complete-file hashes,
 native session IDs, retained failed checks, repair decisions, and final logs are
 stored in the external evidence directory above.
+
+## Milestone 7 implementation observations
+
+Started 2026-11-10. Scope: #19 (headless strategy playtests and balance) and
+#20 (briefing and UX polish). Implementation uses native `gpt-6.1-terra`
+subagents in isolated staging copies, per the explicit model override. Evidence:
+`/var/home/qyfs/.codex/task-evidence/drone-m7-20261110/`.
+
+| Area | Observation | Proposed improvement |
+| --- | --- | --- |
+| Codex | The required `development-evidence` skill is still absent at its configured path. The M6 task record supplies an equivalent scope, interface, execution, and repair format. | Validate required skill paths before advertising them; retain the existing evidence owner while repairing availability. |
+| Codex | Broad skill/tool discovery and combined source reads exceeded the output guard; the full captures and terminal verdicts were retained. | Limit discovery to likely skill roots and requested tool names; read source files in bounded chunks. |
+| DroneDelegation | The tooling owner still specifies Jarvis authorship and historical feature exclusions; this request explicitly selects Terra for M7. | Keep task-specific authorship and scope separate from stable execution rules, and record explicit overrides in task evidence. |
+
+The GitHub issue search returned useful issue bodies but null state/milestone
+fields. A native `gh api` read confirmed canonical milestone #7 and open issues
+#19/#20; those snapshots are retained. A quoted JavaScript browser-harness
+heredoc also triggered the shell-background detection notice despite running
+no background workload. Narrow metadata tools and shell-aware guard parsing
+would reduce these fallback inspections and false diagnostics.
+
+The initial 20-seed M7 strategy run exposed a balance defect hidden by the
+earlier seed-123 timing checks: full delegation stopped S-7 before launch in
+only 7/20 runs; a single gun burst at Pk 0.35 explains the weak benefit.
+Verification must report both timely decisions and physical outcomes, with
+normal damage and real early termination. Scenario-specific tuning keeps the
+shared weapon defaults and seeded randomness intact. The original measurements
+are retained beside the final distributions rather than overwritten.
+
+Combined UX staging passed the existing full verification gate. Chromium
+verified a zero-time briefing, range keys, a full offline watch, frozen end
+controls and new-seed replay at 1280×720. Screenshots were reviewed visually.
+The additional interaction fixture initially selected S-03 at 6 nm while
+expecting an out-of-range gun action; source inspection classified that as a
+fixture error, and the proof now selects S-01 at 12 nm with its assertions
+unchanged. Live accessible-reason updates also need to preserve button focus;
+the UX implementation restores focus when refreshing an action.
+
+The requested cosmetic spawn/sweep follow-up was evaluated without changing
+the simulation order. Air contacts spawn between four-second radar sweeps, so
+merely swapping runner/world calls does not guarantee immediate detection.
+Keep the established sensor cadence and measured detection times until a
+separate sensor-timing change supplies consistent headless and browser proof.

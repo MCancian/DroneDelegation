@@ -6,12 +6,14 @@ import { ProposalManager } from '../src/ai/proposals';
 import { SituationHistory } from '../src/ai/situation';
 import { loadScenario } from '../src/sim/scenario/scenario';
 import { STRAIT_TRANSIT } from '../src/sim/scenario/strait';
+import { WEAPONS_CONFIG } from '../src/sim/scenario/weaponsConfig';
 
 it('reports deciding authority and observed information from an actual delegated Strait playthrough', () => {
   const { world, runner } = loadScenario(STRAIT_TRANSIT, 123);
   setAutonomy(world, 'air', 'WEAPONS_FREE'); setAutonomy(world, 'surface', 'WEAPONS_FREE');
   // Isolate reporting of decisions from early ship loss, preserving target Pk.
-  world.weapons.config = structuredClone(world.weapons.config);
+  // Preserve the historical weapon RNG stream used by this attribution/timing fixture.
+  world.weapons.config = structuredClone(WEAPONS_CONFIG);
   world.weapons.config.ascm.pHit = 0; world.weapons.config.ascm.pHitChaff = 0;
   const manager = new ProposalManager(world);
   const history = new SituationHistory();
