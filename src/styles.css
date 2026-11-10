@@ -825,3 +825,28 @@ p {
 .report-debrief-text { white-space: pre-wrap; line-height: 1.6; }
 .report-actions { margin-top: 2rem; }
 .report-replay { cursor: pointer; padding: .75rem 1.2rem; font-weight: 700; background: #8ad6ca; color: #102226; border: 0; }
+
+/* Watch briefing and threat states */
+.briefing { width: min(44rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; background: #091b18; color: #e0f3e9; border: 1px solid #63b99a; padding: 0; }
+.briefing::backdrop { background: rgba(0, 0, 0, .85); }
+.briefing-content { padding: 1.5rem 2rem; line-height: 1.5; }
+.briefing h1 { margin: .35rem 0 1rem; font-size: 1.8rem; }
+.briefing h2 { margin: 1rem 0 .35rem; color: #80e8ad; }
+.briefing p { color: #c8e0d4; margin: .5rem 0; }
+.briefing dl { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; margin: .5rem 0; }
+.briefing dt { color: #80e8ad; font-weight: bold; }
+.briefing dd { margin: 0; }
+.briefing .briefing-warning { color: #ffd88a; font-weight: bold; }
+.briefing-eyebrow { color: #80e8ad; font-size: .75rem; letter-spacing: .12em; }
+.briefing-start { margin-top: 1rem; padding: .7rem 1rem; background: #91e7ac; color: #06130a; border: 0; font: inherit; font-weight: bold; cursor: pointer; }
+.briefing-start:focus-visible, .contact-actions button:focus-visible { outline: 2px solid white; outline-offset: 2px; }
+.contact-actions button[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+#hull.hull-damaged { color: #ffc66b; font-weight: bold; }
+#hull.hull-critical, #missile-alert.missile-active { color: #ff7676; font-weight: bold; }
+#radar.inbound-threat { box-shadow: inset 0 0 0 3px #e84949; }
+#side.flash-pulse { animation: flash-border 1.4s ease-out 2; }
+@keyframes flash-border { 0%, 50% { box-shadow: inset 0 0 0 4px #ff5353; } 100% { box-shadow: inset 0 0 0 0 transparent; } }
+.crew-msg-routine { color: #a6c9ad; }
+.crew-msg-priority { color: #ffe0a1; }
+@media (prefers-reduced-motion: reduce) { #side.flash-pulse { animation: none; box-shadow: inset 0 0 0 3px #ff5353; } }
+@media (max-width: 1350px) { #topbar { gap: .45rem; padding: .3rem .5rem; } #autonomy { gap: .35rem; } }

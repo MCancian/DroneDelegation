@@ -112,6 +112,8 @@ export function createContactPanel(root: HTMLElement): ContactPanel {
       return;
     }
 
+    const focusedAction = actionsContainer.contains(document.activeElement)
+      ? (document.activeElement as HTMLElement).getAttribute('data-action') : null;
     lastActionSignature = signature;
     callbackRefs.clear();
     buttonRefs.clear();
@@ -134,13 +136,14 @@ export function createContactPanel(root: HTMLElement): ContactPanel {
       button.setAttribute('data-action', action.id);
 
       if (action.disabled) {
-        button.disabled = true;
+        button.setAttribute('aria-disabled', 'true');
         if (action.disabledReason) {
           button.title = action.disabledReason;
         }
       }
 
       button.addEventListener('click', () => {
+        if (button.getAttribute('aria-disabled') === 'true') return;
         const cb = callbackRefs.get(action.id);
         if (cb) cb();
       });
@@ -153,12 +156,14 @@ export function createContactPanel(root: HTMLElement): ContactPanel {
         reasonLabel.textContent = action.disabledReason;
         reasonLabel.style.fontSize = '0.6rem';
         reasonLabel.style.color = '#ff8800';
-        reasonLabel.setAttribute('aria-hidden', 'true');
+        reasonLabel.id = `contact-action-reason-${action.id}`;
+        button.setAttribute('aria-describedby', reasonLabel.id);
         wrapper.appendChild(reasonLabel);
       }
 
       actionsContainer.appendChild(wrapper);
     }
+    if (focusedAction) buttonRefs.get(focusedAction)?.focus();
   }
 
   function destroy(): void {
