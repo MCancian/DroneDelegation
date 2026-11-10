@@ -1,4 +1,4 @@
-import type { Actor, GameEvent, Missile, OwnShip, RadarContact } from './types';
+import type { Actor, GameEvent, Missile, OwnShip, RadarContact, SensorTrack } from './types';
 import { move } from './geo';
 import { mulberry32, type Rng } from './rng';
 import { stepKinematics } from './kinematics';
@@ -111,9 +111,10 @@ export class World {
   }
 
   /**
-   * Only these may be given to the UI or the LLM; `contacts` is ground truth.
+   * Sensor-facing projection. Only legitimate observed/estimated state is
+   * exposed; ground-truth fields are structurally absent from the return type.
    */
-  visibleTracks(): RadarContact[] {
+  visibleTracks(): SensorTrack[] {
     return sensorVisibleTracks(this.sensors, this.contacts, this.time);
   }
 

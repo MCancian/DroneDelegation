@@ -123,6 +123,30 @@ export interface Contact {
 
 export type RadarContact = Contact & { faded?: boolean };
 
+/**
+ * Sensor-facing track projection. Constructed via explicit field allowlist;
+ * never a clone of Contact. Truth-only fields (truth, personsAboard, rcs,
+ * pDetect, size, motion, responses, visualDescription) are structurally absent.
+ */
+export interface SensorTrack {
+  id: string;
+  trackId: string;
+  domain: Domain;
+  position: Vec2;
+  courseDeg: number;
+  speedKts: number;
+  altitudeFt: number;
+  classification: Classification;
+  sensors: SensorInfo;
+  alive: boolean;
+  history: Vec2[];
+  faded?: boolean;
+  ownMissile?: boolean;
+  firstDetectedAt?: number;
+  lastSeen?: number;
+  ageS?: number;
+}
+
 export interface Missile {
   id: string;
   launcherId: string;
