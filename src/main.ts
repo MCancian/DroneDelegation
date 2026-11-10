@@ -18,7 +18,7 @@ import { STRAIT_TRANSIT } from './sim/scenario/strait';
 import { loadScenario } from './sim/scenario/scenario';
 import { executeCommand, validateCommand } from './sim/commands';
 import type { Command } from './sim/commands';
-import type { Classification, RadarContact } from './sim/types';
+import type { Classification, SensorTrack } from './sim/types';
 import { SYSTEM_PROMPT } from './ai/systemPrompt';
 import { SituationHistory, serializeSituation } from './ai/situation';
 import { handleChatReply } from './ai/chatOrders';
@@ -154,7 +154,7 @@ function clearStatus(): void {
 const CLASSIFICATIONS: readonly Classification[] = ['unknown', 'neutral', 'friendly', 'suspect', 'hostile'];
 
 function buildActionsForContact(
-  contact: RadarContact,
+  contact: SensorTrack,
   w: typeof world,
 ): ContactAction[] {
   const actions: ContactAction[] = [];
@@ -377,7 +377,7 @@ if (canvas instanceof HTMLCanvasElement) {
     const tracks = world.visibleTracks();
 
     // Preserve selection: only clear if track disappears or dies (not on range zoom)
-    let selectedContact: RadarContact | null = null;
+    let selectedContact: SensorTrack | null = null;
     if (selectedId !== null) {
       const found = tracks.find((c) => c.id === selectedId);
       if (found !== undefined && found.alive) {

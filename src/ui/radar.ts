@@ -1,4 +1,4 @@
-import type { Classification, OwnShip, RadarContact, Vec2 } from '../sim/types';
+import type { Classification, OwnShip, SensorTrack, Vec2 } from '../sim/types';
 import type { Projection, ScreenRect } from './radarProjection';
 import {
   bearingToScreenAngle,
@@ -18,7 +18,7 @@ import {
 
 export interface RadarView {
   ownShip: OwnShip;
-  contacts: RadarContact[];
+  contacts: SensorTrack[];
   selectedId: string | null;
 }
 
@@ -130,7 +130,7 @@ function isFlickerOff(nowMs: number, trackId: string): boolean {
 }
 
 function contactLabelInfo(
-  contact: RadarContact,
+  contact: SensorTrack,
   screen: Vec2,
 ): { lines: string[]; x: number; y: number } {
   const lines: string[] = [contact.trackId];
@@ -194,7 +194,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
 
   const computeContactObstacles = (
     proj: Projection,
-    contacts: RadarContact[],
+    contacts: SensorTrack[],
   ): ScreenRect[] => {
     const obstacles: ScreenRect[] = [];
     ctx.font = `${LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
@@ -236,7 +236,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
     return obstacles;
   };
 
-  const drawRings = (proj: Projection, contacts: RadarContact[]): void => {
+  const drawRings = (proj: Projection, contacts: SensorTrack[]): void => {
     const center = proj.centerPx;
     const obstacles = computeContactObstacles(proj, contacts);
 
@@ -355,7 +355,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
     ctx.fill();
   };
 
-  const drawContacts = (proj: Projection, contacts: RadarContact[], nowMs: number): void => {
+  const drawContacts = (proj: Projection, contacts: SensorTrack[], nowMs: number): void => {
     ctx.font = `${LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';

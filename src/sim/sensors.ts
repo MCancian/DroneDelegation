@@ -1,4 +1,4 @@
-import type { Contact, Domain, OwnShip, RadarContact, Vec2, VisualInfo } from './types';
+import type { Contact, Domain, OwnShip, RadarContact, SensorInfo, SensorTrack, Vec2, VisualInfo } from './types';
 import { move, rangeTo } from './geo';
 import type { Rng } from './rng';
 
@@ -224,32 +224,74 @@ export function displayedPosition(track: TrackState, timeS: number): Vec2 {
   return move(track.lastPosition, track.lastCourseDeg, track.lastSpeedKts, timeS - track.lastSeen);
 }
 
+function projectIff(src: Contact['sensors']['iff']): SensorInfo['iff'] {
+  switch (src.kind) {
+    case 'mode3': return { kind: 'mode3', code: src.code };
+    case 'mode4': return { kind: 'mode4' };
+    default: return { kind: 'none' };
+  }
+}
+
+function projectAis(src: Contact['sensors']['ais']): SensorInfo['ais'] {
+  if (src.kind === 'vessel') {
+    return { kind: 'vessel', name: src.name, vesselType: src.vesselType };
+  }
+  return { kind: 'none' };
+}
+
+function projectEsm(src: Contact['sensors']['esm']): SensorInfo['esm'] {
+  if (src.kind === 'emitter') {
+    return { kind: 'emitter', emitterType: src.emitterType };
+  }
+  return { kind: 'none' };
+}
+
+function projectVisual(latched: VisualInfo): SensorInfo['visual'] {
+  if (latched.kind === 'identified') {
+    return { kind: 'identified', description: latched.description };
+  }
+  return { kind: 'none' };
+}
+
 export function visibleTracks(
   state: SensorState,
   contacts: readonly Contact[],
   timeS: number,
-): RadarContact[] {
-  const result: RadarContact[] = [];
+): SensorTrack[] {
+  const result: SensorTrack[] = [];
   for (const contact of contacts) {
     if (!contact.alive) continue;
     const track = state.tracks[contact.id];
     if (!track || !track.detected) continue;
 
-    const clone = structuredClone(contact) as RadarContact;
-    clone.trackId = track.trackId;
-    clone.position = displayedPosition(track, timeS);
-    clone.courseDeg = track.lastCourseDeg;
-    clone.speedKts = track.lastSpeedKts;
-    clone.altitudeFt = track.lastAltitudeFt;
-    clone.history = track.history.map(copyVec);
-    clone.faded = track.faded;
-    delete clone.motion;
-    delete clone.visualDescription;
-    delete clone.responses;
-    if (track.visual.kind === 'identified') {
-      clone.sensors.visual = { ...track.visual };
-    }
-    result.push(clone);
+    const sensors: SensorInfo = {
+      iff: projectIff(contact.sensors.iff),
+      ais: projectAis(contact.sensors.ais),
+      esm: projectEsm(contact.sensors.esm),
+      visual: projectVisual(track.visual.kind === 'identified' ? track.visual : contact.sensors.visual),
+    };
+
+    const st: SensorTrack = {
+      id: contact.id,
+      trackId: track.trackId,
+      domain: contact.domain,
+      position: copyVec(displayedPosition(track, timeS)),
+      courseDeg: track.lastCourseDeg,
+      speedKts: track.lastSpeedKts,
+      altitudeFt: track.lastAltitudeFt,
+      classification: contact.classification,
+      sensors,
+      alive: contact.alive,
+      history: track.history.map(copyVec),
+      faded: track.faded,
+      firstDetectedAt: track.firstDetectedAt,
+      lastSeen: track.lastSeen,
+      ageS: timeS - track.firstDetectedAt,
+    };
+
+    if (contact.ownMissile) st.ownMissile = true;
+
+    result.push(st);
   }
   return result;
 }
