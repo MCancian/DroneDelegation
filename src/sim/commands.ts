@@ -160,10 +160,10 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
       }
       const contact = world.contactById(cmd.target);
       if (!contact || !contact.alive || !isVisible(world, cmd.target)) {
-        return { ok: false, error: `Target ${cmd.target} is not a valid visible target` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is not a valid visible target` };
       }
       if (isOwnMissile(contact)) {
-        return { ok: false, error: `Target ${cmd.target} is an own missile` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is an own missile` };
       }
       return { ok: true };
     }
@@ -171,16 +171,16 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
     case 'iff_challenge': {
       const contact = world.contactById(cmd.target);
       if (!contact || !contact.alive || !isVisible(world, cmd.target)) {
-        return { ok: false, error: `Target ${cmd.target} is not a valid visible target` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is not a valid visible target` };
       }
       if (isOwnMissile(contact)) {
-        return { ok: false, error: `Target ${cmd.target} is an own missile` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is an own missile` };
       }
       if (contact.domain !== 'air') {
-        return { ok: false, error: `Target ${cmd.target} domain '${contact.domain}' is not valid for IFF challenge` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} domain '${contact.domain}' is not valid for IFF challenge` };
       }
       if (hasPendingDuplicate(world, cmd.target, 'iff_challenge')) {
-        return { ok: false, error: `Pending IFF challenge already exists for ${cmd.target}` };
+        return { ok: false, error: `Pending IFF challenge already exists for ${world.trackFor(cmd.target)?.trackId ?? "contact"}` };
       }
       return { ok: true };
     }
@@ -188,16 +188,16 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
     case 'radio_warning': {
       const contact = world.contactById(cmd.target);
       if (!contact || !contact.alive || !isVisible(world, cmd.target)) {
-        return { ok: false, error: `Target ${cmd.target} is not a valid visible target` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is not a valid visible target` };
       }
       if (isOwnMissile(contact)) {
-        return { ok: false, error: `Target ${cmd.target} is an own missile` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is an own missile` };
       }
       if (contact.domain !== 'air' && contact.domain !== 'surface') {
-        return { ok: false, error: `Target ${cmd.target} domain '${contact.domain}' is not valid for radio warning` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} domain '${contact.domain}' is not valid for radio warning` };
       }
       if (hasPendingDuplicate(world, cmd.target, 'radio_warning')) {
-        return { ok: false, error: `Pending radio warning already exists for ${cmd.target}` };
+        return { ok: false, error: `Pending radio warning already exists for ${world.trackFor(cmd.target)?.trackId ?? "contact"}` };
       }
       return { ok: true };
     }
@@ -205,16 +205,16 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
     case 'hail': {
       const contact = world.contactById(cmd.target);
       if (!contact || !contact.alive || !isVisible(world, cmd.target)) {
-        return { ok: false, error: `Target ${cmd.target} is not a valid visible target` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is not a valid visible target` };
       }
       if (isOwnMissile(contact)) {
-        return { ok: false, error: `Target ${cmd.target} is an own missile` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is an own missile` };
       }
       if (contact.domain !== 'surface') {
-        return { ok: false, error: `Target ${cmd.target} domain '${contact.domain}' is not valid for hail` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} domain '${contact.domain}' is not valid for hail` };
       }
       if (hasPendingDuplicate(world, cmd.target, 'hail')) {
-        return { ok: false, error: `Pending hail already exists for ${cmd.target}` };
+        return { ok: false, error: `Pending hail already exists for ${world.trackFor(cmd.target)?.trackId ?? "contact"}` };
       }
       return { ok: true };
     }
@@ -222,16 +222,16 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
     case 'illuminate': {
       const contact = world.contactById(cmd.target);
       if (!contact || !contact.alive || !isVisible(world, cmd.target)) {
-        return { ok: false, error: `Target ${cmd.target} is not a valid visible target` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is not a valid visible target` };
       }
       if (isOwnMissile(contact)) {
-        return { ok: false, error: `Target ${cmd.target} is an own missile` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is an own missile` };
       }
       if (contact.domain !== 'air') {
-        return { ok: false, error: `Target ${cmd.target} domain '${contact.domain}' is not valid for illuminate` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} domain '${contact.domain}' is not valid for illuminate` };
       }
       if (hasPendingDuplicate(world, cmd.target, 'illuminate')) {
-        return { ok: false, error: `Pending illuminate already exists for ${cmd.target}` };
+        return { ok: false, error: `Pending illuminate already exists for ${world.trackFor(cmd.target)?.trackId ?? "contact"}` };
       }
       return { ok: true };
     }
@@ -239,13 +239,13 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
     case 'warning_shots': {
       const contact = world.contactById(cmd.target);
       if (!contact || !contact.alive || !isVisible(world, cmd.target)) {
-        return { ok: false, error: `Target ${cmd.target} is not a valid visible target` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is not a valid visible target` };
       }
       if (isOwnMissile(contact)) {
-        return { ok: false, error: `Target ${cmd.target} is an own missile` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is an own missile` };
       }
       if (contact.domain !== 'surface') {
-        return { ok: false, error: `Target ${cmd.target} domain '${contact.domain}' is not valid for warning shots` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} domain '${contact.domain}' is not valid for warning shots` };
       }
       const range = rangeTo(world.ownShip.position, contact.position);
       if (range > WARNING_SHOTS_MAX_RANGE_NM) {
@@ -258,7 +258,7 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
         return { ok: false, error: 'Gun is already engaged' };
       }
       if (hasPendingDuplicate(world, cmd.target, 'warning_shots')) {
-        return { ok: false, error: `Pending warning shots already exists for ${cmd.target}` };
+        return { ok: false, error: `Pending warning shots already exists for ${world.trackFor(cmd.target)?.trackId ?? "contact"}` };
       }
       return { ok: true };
     }
@@ -266,13 +266,13 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
     case 'engage_sam': {
       const contact = world.contactById(cmd.target);
       if (!contact || !contact.alive || !isVisible(world, cmd.target)) {
-        return { ok: false, error: `Target ${cmd.target} is not a valid visible target` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is not a valid visible target` };
       }
       if (isOwnMissile(contact)) {
-        return { ok: false, error: `Target ${cmd.target} is an own missile` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is an own missile` };
       }
       if (contact.domain !== 'air' && contact.domain !== 'missile') {
-        return { ok: false, error: `Target ${cmd.target} domain '${contact.domain}' is not valid for SAM` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} domain '${contact.domain}' is not valid for SAM` };
       }
       const cfg = world.weapons.config.sam;
       const range = rangeTo(world.ownShip.position, contact.position);
@@ -288,13 +288,13 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
     case 'engage_gun': {
       const contact = world.contactById(cmd.target);
       if (!contact || !contact.alive || !isVisible(world, cmd.target)) {
-        return { ok: false, error: `Target ${cmd.target} is not a valid visible target` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is not a valid visible target` };
       }
       if (isOwnMissile(contact)) {
-        return { ok: false, error: `Target ${cmd.target} is an own missile` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is an own missile` };
       }
       if (contact.domain !== 'surface') {
-        return { ok: false, error: `Target ${cmd.target} domain '${contact.domain}' is not valid for gun` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} domain '${contact.domain}' is not valid for gun` };
       }
       const cfg = world.weapons.config.gun;
       const range = rangeTo(world.ownShip.position, contact.position);
@@ -313,20 +313,20 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
     case 'ciws': {
       const contact = world.contactById(cmd.target);
       if (!contact || !contact.alive || !isVisible(world, cmd.target)) {
-        return { ok: false, error: `Target ${cmd.target} is not a valid visible target` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is not a valid visible target` };
       }
       if (isOwnMissile(contact)) {
-        return { ok: false, error: `Target ${cmd.target} is an own missile` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is an own missile` };
       }
       if (contact.domain !== 'missile') {
-        return { ok: false, error: `Target ${cmd.target} domain '${contact.domain}' is not valid for CIWS` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} domain '${contact.domain}' is not valid for CIWS` };
       }
       if (!world.weapons.ascms[cmd.target]) {
-        return { ok: false, error: `Target ${cmd.target} is not an inbound missile` };
+        return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} is not an inbound missile` };
       }
       const ascm = world.weapons.ascms[cmd.target];
       if (ascm.ciwsEngaged) {
-        return { ok: false, error: `CIWS already engaged on ${cmd.target}` };
+        return { ok: false, error: `CIWS already engaged on ${world.trackFor(cmd.target)?.trackId ?? "contact"}` };
       }
       const cfg = world.weapons.config.ciws;
       const range = rangeTo(world.ownShip.position, contact.position);

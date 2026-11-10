@@ -16,11 +16,13 @@ export function formatClock(timeS: number, durationS = 900): string {
 export interface Hud {
   setClock(timeS: number): void;
   setHull(pct: number): void;
+  setMissileAlert(text: string, active: boolean): void;
 }
 
 export function createHud(doc: Document = document, durationS = 900): Hud {
   const clockEl = doc.getElementById('clock');
   const hullEl = doc.getElementById('hull');
+  const missileEl = doc.getElementById('missile-alert');
 
   let lastClockText = '';
 
@@ -36,6 +38,13 @@ export function createHud(doc: Document = document, durationS = 900): Hud {
     setHull(pct: number): void {
       if (hullEl === null) return;
       hullEl.textContent = `Hull ${Math.round(pct)}%`;
+      hullEl.classList.toggle('hull-damaged', pct < 100);
+      hullEl.classList.toggle('hull-critical', pct <= 35);
+    },
+    setMissileAlert(text: string, active: boolean): void {
+      if (!missileEl) return;
+      if (missileEl.textContent !== text) missileEl.textContent = text;
+      missileEl.classList.toggle('missile-active', active);
     },
   };
 }

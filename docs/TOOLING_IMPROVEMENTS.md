@@ -326,3 +326,14 @@ the simulation order. Air contacts spawn between four-second radar sweeps, so
 merely swapping runner/world calls does not guarantee immediate detection.
 Keep the established sensor cadence and measured detection times until a
 separate sensor-timing change supplies consistent headless and browser proof.
+
+Final combined M7 staging passed 175 tooling tests, both TypeScript projects,
+690 application tests across 53 files, and the production build. Chromium
+confirmed briefing/start/replay, range and chat shortcuts, editable-field guards,
+keyboard-readable disabled reasons, actual missile ETA and visual alerts, FLASH
+audio oscillator activation after a user gesture, and live hull damage. No page
+errors were recorded at 1280×720. Screenshot review confirmed readable briefing
+text and separated fleet labels. Native IDs, final file hashes, baseline and
+tuned outcome distributions, retained failures and repair decisions are in the
+M7 evidence directory. The browser checks use controlled AI health responses;
+live model prose is outside these deterministic proofs.

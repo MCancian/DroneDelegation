@@ -50,6 +50,8 @@ export function createCrewFeed(
   let cursor = 0;
   let audioContext: AudioContext | null = null;
   let destroyed = false;
+  const cpaReminders = new Map<string, HTMLElement>();
+  let flashTimer: ReturnType<typeof setTimeout> | null = null;
 
   const onGesture = (): void => {
     if (destroyed) return;
@@ -108,6 +110,15 @@ export function createCrewFeed(
       const trackId = typeof payload.trackId === 'string' ? payload.trackId : undefined;
 
       const text = stripStationPrefix(rawText, station);
+      // Consolidate only the recurring CPA reminder for a contact. Distinct
+      // sensor reports and all FLASH traffic remain individual entries.
+      const reminderKey = priority !== 'flash' && contactId && / closing, CPA [\d.]+ nm in \d+s\.$/.test(text) ? contactId : null;
+      if (contactId && !reminderKey) cpaReminders.delete(contactId);
+      if (reminderKey) {
+        const old = cpaReminders.get(reminderKey);
+        if (old) old.remove();
+      }
+
 
       const msg = document.createElement('div');
       msg.className = `crew-msg crew-msg-${priority}`;
@@ -153,10 +164,19 @@ export function createCrewFeed(
       }
 
       list.appendChild(msg);
+      if (reminderKey) cpaReminders.set(reminderKey, msg);
       added = true;
 
       if (priority === 'flash') {
         playFlashBeep();
+        const side = root.closest('#side');
+        if (side instanceof HTMLElement) {
+          side.classList.remove('flash-pulse');
+          void side.offsetWidth;
+          side.classList.add('flash-pulse');
+          if (flashTimer !== null) clearTimeout(flashTimer);
+          flashTimer = setTimeout(() => { side.classList.remove('flash-pulse'); flashTimer = null; }, 2800);
+        }
       }
     }
 
@@ -167,6 +187,9 @@ export function createCrewFeed(
 
   function destroy(): void {
     destroyed = true;
+    cpaReminders.clear();
+    if (flashTimer !== null) clearTimeout(flashTimer);
+    root.closest('#side')?.classList.remove('flash-pulse');
     document.removeEventListener('pointerdown', onGesture);
     document.removeEventListener('keydown', onGesture);
     if (audioContext) {

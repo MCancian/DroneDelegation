@@ -1,5 +1,8 @@
 import './styles.css';
 import { createRadar } from './ui/radar';
+import { showBriefing } from './ui/briefing';
+import { missileThreats, formatMissileThreat } from './ui/alerts';
+import { RANGE_SCALES } from './ui/radarProjection';
 import { DEFAULT_RANGE_NM } from './ui/radarProjection';
 import { pickContact, PICK_TOLERANCE_PX, visibleContacts } from './ui/contactSelection';
 import { createContactPanel } from './ui/contactPanel';
@@ -30,6 +33,10 @@ import { Doctrine } from './ai/doctrine';
 import { analyze } from './report/analyze';
 import { createReport } from './ui/report';
 import { streamDebrief } from './ai/debrief';
+
+let watchStarted = false;
+let resetFrameTime = false;
+showBriefing(() => { watchStarted = true; resetFrameTime = true; });
 
 const config = parseConfig(window.location.search, randomSeed(), import.meta.env.DEV);
 
@@ -381,6 +388,22 @@ if (canvas instanceof HTMLCanvasElement) {
 
   markActiveRange(radar.getRange());
 
+  document.addEventListener('keydown', (event) => {
+    if (!watchStarted || isEnded() || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+    if (event.key >= '1' && event.key <= '4') {
+      radar.setRange(RANGE_SCALES[Number(event.key) - 1]);
+      event.preventDefault();
+    } else if (event.key === 'Escape') {
+      selectedId = null;
+      event.preventDefault();
+    } else if (event.key === '/') {
+      const input = document.querySelector<HTMLTextAreaElement>('#chat textarea:not(:disabled)');
+      if (input) { input.focus(); event.preventDefault(); }
+    }
+  });
+
   if (rangeButtons instanceof HTMLElement) {
     rangeButtons.addEventListener('click', (event) => {
       if (isEnded()) return;
@@ -420,10 +443,11 @@ if (canvas instanceof HTMLCanvasElement) {
   let lastTs: number | null = null;
 
   const frame = (ts: number): void => {
-    const delta = lastTs === null ? 0 : (ts - lastTs) / 1000;
+    const delta = lastTs === null || resetFrameTime ? 0 : (ts - lastTs) / 1000;
+    resetFrameTime = false;
     lastTs = ts;
 
-    if (!clockStopped) {
+    if (watchStarted && !clockStopped) {
       clock.advance(delta);
     }
 
@@ -435,6 +459,9 @@ if (canvas instanceof HTMLCanvasElement) {
     proposalPanel?.update();
 
     const tracks = world.visibleTracks();
+    const threat = missileThreats(world.ownShip, tracks);
+    hud.setMissileAlert(formatMissileThreat(threat.count, threat.etaS), threat.count > 0);
+    document.getElementById('radar')?.classList.toggle('inbound-threat', threat.count > 0);
 
     // Preserve selection: only clear if track disappears or dies (not on range zoom)
     let selectedContact: SensorTrack | null = null;

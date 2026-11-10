@@ -127,3 +127,20 @@ Run all verification gates locally:
 ```bash
 bash scripts/node22.sh npm run verify
 ```
+
+## Taking the watch
+
+The briefing introduces the ship and authority settings before the clock starts.
+Select **Take the watch** when ready: from then on the scenario runs continuously.
+Keys **1–4** set radar range, **Esc** clears the selected track, and **/** focuses
+chat when available. The missile ETA is an estimate from observed track motion;
+FLASH reports and hostile missile tracks draw attention to immediate threats.
+The after-action report records the consequences of the decisions you made.
+
+The game runs without Jarvis: crew reports, manual orders and deterministic
+doctrine continue, while chat and the optional AI debrief are unavailable. To
+use chat, start an OpenAI-compatible server and configure `JARVIS_URL` and
+`JARVIS_MODEL` as above.
+
+![Watch briefing](docs/screenshots/briefing.png)
+![Tactical display](docs/screenshots/gameplay.png)

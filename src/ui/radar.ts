@@ -1,5 +1,7 @@
 import type { Classification, OwnShip, SensorTrack, Vec2 } from '../sim/types';
 import type { Projection, ScreenRect } from './radarProjection';
+import { layoutRadarLabels } from './radarLabels';
+import type { RadarLabelPlacement } from './radarLabels';
 import {
   bearingToScreenAngle,
   cappedLeaderLengthPx,
@@ -72,8 +74,6 @@ const HISTORY_DOT_RADIUS_PX = 1.5;
 const LEADER_MIN_PX = 6;
 
 const LABEL_FONT_PX = 11;
-const LABEL_OFFSET_X_PX = 10;
-const LABEL_OFFSET_Y_PX = 8;
 const LABEL_LINE_HEIGHT_PX = 13;
 
 const SELECTED_RADIUS_PX = 13;
@@ -129,21 +129,11 @@ function isFlickerOff(nowMs: number, trackId: string): boolean {
   return Math.sin(nowMs / FADED_FLICKER_PERIOD_MS + hashString(trackId)) > FADED_FLICKER_THRESHOLD;
 }
 
-function contactLabelInfo(
-  contact: SensorTrack,
-  screen: Vec2,
-): { lines: string[]; x: number; y: number } {
-  const lines: string[] = [contact.trackId];
-  if (contact.domain === 'air') {
-    lines.push(`ALT ${String(Math.round(contact.altitudeFt / 100)).padStart(3, '0')}`);
-  }
+function contactLabelLines(contact: SensorTrack): string[] {
+  const lines = [contact.trackId];
+  if (contact.domain === 'air') lines.push(`ALT ${String(Math.round(contact.altitudeFt / 100)).padStart(3, '0')}`);
   lines.push(`SPD ${Math.round(contact.speedKts)}`);
-
-  const labelX = screen.x + SYMBOL_RADIUS_PX + LABEL_OFFSET_X_PX;
-  const labelY =
-    screen.y - SYMBOL_RADIUS_PX - LABEL_OFFSET_Y_PX - (lines.length - 1) * LABEL_LINE_HEIGHT_PX;
-
-  return { lines, x: labelX, y: labelY };
+  return lines;
 }
 
 export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Radar {
@@ -192,53 +182,30 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
 
   canvas.addEventListener('wheel', onWheel, { passive: false });
 
-  const computeContactObstacles = (
-    proj: Projection,
-    contacts: SensorTrack[],
-  ): ScreenRect[] => {
-    const obstacles: ScreenRect[] = [];
+  const computeLabels = (
+    proj: Projection, contacts: SensorTrack[], selectedId: string | null, width: number, height: number,
+  ): { placements: RadarLabelPlacement[]; obstacles: ScreenRect[] } => {
+    const visible = contacts.filter(c => c.alive && isInsideScope(proj, c.position));
+    const obstacles: ScreenRect[] = visible.map(c => {
+      const point = projectionWorldToScreen(proj, c.position);
+      return { x: point.x - 9, y: point.y - 9, width: 18, height: 18 };
+    });
     ctx.font = `${LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
-
-    for (const contact of contacts) {
-      if (!contact.alive) {
-        continue;
-      }
-      if (!isInsideScope(proj, contact.position)) {
-        continue;
-      }
-
-      const screen = projectionWorldToScreen(proj, contact.position);
-
-      const symbolHalf = SYMBOL_RADIUS_PX + 2;
-      obstacles.push({
-        x: screen.x - symbolHalf,
-        y: screen.y - symbolHalf,
-        width: symbolHalf * 2,
-        height: symbolHalf * 2,
-      });
-
-      const { lines, x: labelX, y: labelY } = contactLabelInfo(contact, screen);
-      let maxWidth = 0;
-      for (const line of lines) {
-        const w = ctx.measureText(line).width;
-        if (w > maxWidth) {
-          maxWidth = w;
-        }
-      }
-      obstacles.push({
-        x: labelX,
-        y: labelY,
-        width: maxWidth,
+    const requests = visible.map(c => {
+      const lines = contactLabelLines(c);
+      return {
+        id: c.id, anchor: projectionWorldToScreen(proj, c.position),
+        width: Math.ceil(Math.max(...lines.map(line => ctx.measureText(line).width))),
         height: lines.length * LABEL_LINE_HEIGHT_PX,
-      });
-    }
-
-    return obstacles;
+        priority: c.id === selectedId || c.trackId === selectedId ? 2 : c.domain === 'missile' && !c.ownMissile ? 1 : 0,
+      };
+    });
+    const placements = layoutRadarLabels(requests, width, height, obstacles);
+    return { placements, obstacles: [...obstacles, ...placements] };
   };
 
-  const drawRings = (proj: Projection, contacts: SensorTrack[]): void => {
+  const drawRings = (proj: Projection, obstacles: ScreenRect[]): void => {
     const center = proj.centerPx;
-    const obstacles = computeContactObstacles(proj, contacts);
 
     ctx.strokeStyle = RING_COLOR;
     ctx.fillStyle = RING_LABEL_COLOR;
@@ -435,14 +402,41 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
         ctx.fill();
       }
 
-      const { lines, x: labelX, y: labelY } = contactLabelInfo(contact, screen);
-
-      ctx.fillStyle = color;
-      for (let i = 0; i < lines.length; i += 1) {
-        ctx.fillText(lines[i] ?? '', labelX, labelY + i * LABEL_LINE_HEIGHT_PX);
+      // Hostile missile indication uses the observed classification only.
+      if (contact.domain === 'missile' && !contact.ownMissile && contact.classification === 'hostile') {
+        ctx.globalAlpha = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(nowMs / 180));
+        ctx.strokeStyle = CLASSIFICATION_COLORS.hostile;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, 10, 0, TAU);
+        ctx.stroke();
       }
     }
 
+    ctx.globalAlpha = 1;
+  };
+
+  const drawLabels = (proj: Projection, contacts: SensorTrack[], placements: RadarLabelPlacement[], nowMs: number): void => {
+    ctx.font = `${LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    for (const placement of placements) {
+      const contact = contacts.find(c => c.id === placement.id);
+      if (!contact) continue;
+      const point = projectionWorldToScreen(proj, contact.position);
+      const color = CLASSIFICATION_COLORS[contact.classification] ?? '#ffffff';
+      const alpha = contact.faded ? (isFlickerOff(nowMs, contact.trackId) ? FADED_OFF_ALPHA : FADED_ALPHA) : 1;
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(point.x, point.y);
+      ctx.lineTo(Math.max(placement.x, Math.min(point.x, placement.x + placement.width)),
+        Math.max(placement.y, Math.min(point.y, placement.y + placement.height)));
+      ctx.stroke();
+      ctx.fillStyle = color;
+      contactLabelLines(contact).forEach((line, i) => ctx.fillText(line, placement.x, placement.y + i * LABEL_LINE_HEIGHT_PX));
+    }
     ctx.globalAlpha = 1;
   };
 
@@ -507,7 +501,8 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
 
     const center = projection.centerPx;
 
-    drawRings(projection, view.contacts);
+    const labels = computeLabels(projection, view.contacts, view.selectedId, cssWidth, cssHeight);
+    drawRings(projection, labels.obstacles);
     drawScopeOuter(projection);
     drawBearingTicks(projection);
 
@@ -522,6 +517,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
 
     ctx.restore();
 
+    drawLabels(projection, view.contacts, labels.placements, nowMs);
     drawSelected(projection, view);
   };
 
