@@ -182,3 +182,39 @@ timer started before the subprocess initialized, measuring only 0.05 s of actual
 queue time against the unchanged ≥0.1 s expectation. The autonomy Terra agent
 owns a focused fixture repair: synchronize cancellation and release with caller
 readiness using bounded waits, preserving production code and assertions.
+
+Further integration review found that tactical range-entry triggers need both
+minimum and maximum weapon envelopes from the actual weapons configuration.
+Terra corrected the initial hardcoded upper-range check and added a custom-range
+boundary test before application. Browser proof assertions also wait for the
+next animation frame's observable state instead of assuming a click immediately
+redraws all controls.
+
+GitHub initially reported no checks for the newly opened autonomy PR; the active
+workflow registered a run about a minute later. The empty result was retained as
+unresolved rather than treated as success. Once a run ID existed, native
+`gh run watch --exit-status` followed it to its terminal verdict.
+
+The first autonomy CI run passed tooling and typecheck but exposed an existing
+slot-test expectation/cleanup defect. The 200 ms queue deadline can expire in
+`tryAcquire`'s confirmation timer, producing its explicit timeout error instead
+of `acquireSlot`'s “No slot available” error. The test accepted only the latter;
+its failed assertion skipped release of four fixture locks and caused four
+subsequent tests to time out. The repair accepts exactly those two existing
+deadline errors and releases every test-acquired handle after each test,
+including assertion failures. Production slot behavior stays unchanged.
+Original CI run: `42840882185`; failed log retained in the task record.
+
+Doctrine acceptance needs counterfactual evidence when a successful intercept
+removes the airliner before its civil report can occur. With seed 123, A-9 is
+engaged at T+709.0 at 39.9908 nm and destroyed at T+773.9; the same-seed HOLD
+trajectory reaches the commercial-emitter report at T+776.6. Tests check both
+the observed launch range (>32 nm) and that HOLD reference time rather than
+requiring a dead contact to emit a later report. The scenario fixture disables
+only inbound missile damage to isolate authority timing; target hit probabilities
+remain unchanged. This balancing nuance is retained without changing weapons.
+
+Group departure also needs an explicit observed-data fixture: physical size and
+scripted motion are intentionally excluded from sensor tracks. The implementation
+records its chosen proximity, movement and freshness thresholds, and tests stale
+group peers, answered hails, AIS traffic and access to hidden contact data.
