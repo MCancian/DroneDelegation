@@ -207,7 +207,7 @@ describe('World', () => {
       const world = new World({ seed: 1, ownShip: makeOwnShip(), contacts: [] });
       world.step(5);
 
-      const event = world.logEvent('test', 'player', { a: 1 });
+      const event = world.logCustomEvent('test', 'player', { a: 1 });
 
       expect(event).toEqual({ t: 5, type: 'test', actor: 'player', payload: { a: 1 } });
       expect(world.events.length).toBe(1);

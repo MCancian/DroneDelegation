@@ -11,11 +11,11 @@ describe('EventBus', () => {
   it('on delivers, off stops delivery', () => {
     const bus = new EventBus();
     const received: GameEvent[] = [];
-    const off = bus.on('test', (e) => received.push(e));
-    bus.emit({ t:0, type:'test', actor:'player', payload:{} });
+    const off = bus.onCustom('test', (e) => received.push(e));
+    bus.emitCustom({ t:0, type:'test', actor:'player', payload:{} });
     expect(received.length).toBe(1);
     off();
-    bus.emit({ t:1, type:'test', actor:'player', payload:{} });
+    bus.emitCustom({ t:1, type:'test', actor:'player', payload:{} });
     expect(received.length).toBe(1);
   });
 });
@@ -24,8 +24,8 @@ describe('World.logEvent', () => {
   it('publishes to bus and retains in log', () => {
     const world = new World({ seed:1, ownShip:structuredClone(OWN), contacts:[] });
     const received: GameEvent[] = [];
-    world.eventBus.on('custom', (e) => received.push(e));
-    world.logEvent('custom', 'player', { x: 42 });
+    world.eventBus.onCustom('custom', (e) => received.push(e));
+    world.logCustomEvent('custom', 'player', { x: 42 });
     expect(received.length).toBe(1);
     expect(world.events.length).toBe(1);
     expect(world.events[0].payload).toEqual({ x: 42 });

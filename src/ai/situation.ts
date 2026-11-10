@@ -1,3 +1,4 @@
+import { isEventOfType } from '../sim/events';
 import type { World } from '../sim/world';
 import { bearingTo, rangeTo, cpa, closingSpeed, velocityFrom } from '../sim/geo';
 
@@ -67,10 +68,8 @@ export class SituationHistory {
     while (this.eventCursor < events.length) {
       const ev = events[this.eventCursor];
       this.eventCursor++;
-      if (ev.type === 'ascm_launched') {
-        const p = ev.payload as Record<string, unknown>;
-        const missileId = (p.missileId as string) ?? '';
-        const launcherId = (p.launcherId as string) ?? '';
+      if (isEventOfType(ev, 'ascm_launched')) {
+        const { missileId, launcherId } = ev.payload;
         if (missileId && launcherId) {
           const snap = this.snapshots.get(launcherId);
           if (snap) {
@@ -175,15 +174,13 @@ export function serializeSituation(
     lines.push('  ' + parts.join(' | '));
   }
 
-  const crewReports = world.events.filter((e) => e.type === 'crew-report');
+  const crewReports = world.events.filter((e) => isEventOfType(e, 'crew-report'));
   const last10 = crewReports.slice(-10);
   if (last10.length > 0) {
     lines.push('');
     lines.push('CREW:');
     for (const ev of last10) {
-      const p = ev.payload as Record<string, unknown>;
-      const station = (p.station as string) ?? '';
-      const text = (p.text as string) ?? '';
+      const { station, text } = ev.payload;
       lines.push(`  [${fmtTime(ev.t)}] ${station}: ${text}`);
     }
   }

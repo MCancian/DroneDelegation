@@ -360,8 +360,7 @@ export function executeCommand(world: World, cmd: Command, actor: CommandActor):
   // Log the command attempt (before effects/weapon logs)
   world.logEvent('command', actor, {
     command: structuredClone(cmd),
-    ok: validation.ok,
-    ...(validation.ok ? {} : { error: validation.error }),
+    ...(validation.ok ? { ok: true as const } : { ok: false as const, error: validation.error }),
     autonomy: { ...world.autonomy },
   });
 

@@ -5,6 +5,7 @@ import { bearingTo, fromBearingRange, rangeTo } from '../geo';
 import { setBehavior } from '../kinematics';
 import { WEAPONS_HOOKS } from '../weapons';
 import { stepCrew } from './crew';
+import type { CrewReportPayload } from '../events';
 
 export type CrewStation = 'CIC' | 'TAO-Air' | 'SWC' | 'EW' | 'Lookouts' | 'Bridge' | 'Radio';
 export type CrewPriority = 'routine' | 'priority' | 'flash';
@@ -334,7 +335,7 @@ export class ScenarioRunner {
             return;
           }
         }
-        const payload: Record<string, unknown> = {
+        const payload: CrewReportPayload = {
           station: action.station,
           priority: action.priority,
           text: action.text,

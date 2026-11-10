@@ -14,7 +14,8 @@ import {
 import { createWeaponsState, stepWeapons, type WeaponsState } from './weapons';
 import type { WeaponsConfig } from './scenario/weaponsConfig';
 import { stepCommands } from './commands';
-import { EventBus } from './events';
+import { assertCustomEventType, EventBus } from './events';
+import type { EventPayload, EventFor, KnownEventType } from './events';
 
 export const HISTORY_INTERVAL_S = 30;
 export const HISTORY_LENGTH = 6;
@@ -123,10 +124,19 @@ export class World {
     return this.sensors.tracks[contactId];
   }
 
-  logEvent<T>(type: string, actor: Actor, payload: T): GameEvent<T> {
-    const event: GameEvent<T> = { t: this.time, type, actor, payload };
+  logEvent<K extends KnownEventType>(type: K, actor: Actor, payload: EventPayload<NoInfer<K>>): EventFor<K> {
+    const event: EventFor<K> = { t: this.time, type, actor, payload };
     this.events.push(event);
     this.eventBus.emit(event);
+    return event;
+  }
+
+  /** Explicit extension point for nonstandard events; known events must be typed. */
+  logCustomEvent<T>(type: string, actor: Actor, payload: T): GameEvent<T> {
+    assertCustomEventType(type);
+    const event: GameEvent<T> = { t: this.time, type, actor, payload };
+    this.events.push(event);
+    this.eventBus.emitCustom(event);
     return event;
   }
 
