@@ -4,6 +4,7 @@ import { STEP_S } from '../clock';
 import { bearingTo, fromBearingRange, rangeTo } from '../geo';
 import { setBehavior } from '../kinematics';
 import { WEAPONS_HOOKS } from '../weapons';
+import { stepCrew } from './crew';
 
 export type CrewStation = 'CIC' | 'TAO-Air' | 'SWC' | 'EW' | 'Lookouts' | 'Bridge' | 'Radio';
 export type CrewPriority = 'routine' | 'priority' | 'flash';
@@ -232,6 +233,7 @@ export class ScenarioRunner {
   update(): void {
     this.spawnContacts();
     this.processTriggers();
+    stepCrew(this.world);
   }
 
   private spawnContacts(): void {
@@ -313,6 +315,21 @@ export class ScenarioRunner {
         break;
       }
       case 'crewReport': {
+        const contact = action.contactId !== undefined ? this.world.contactById(action.contactId) : undefined;
+        if (action.contactId !== undefined) {
+          if (!contact || !contact.alive) return;
+          const track = this.world.trackFor(action.contactId);
+          if (!track || !track.detected) return;
+
+          // Suppress no-visual Lookouts report when visual ID is already available
+          if (
+            action.station === 'Lookouts' &&
+            action.text.toLowerCase().includes('no visual') &&
+            track.visual.kind === 'identified'
+          ) {
+            return;
+          }
+        }
         const payload: Record<string, unknown> = {
           station: action.station,
           priority: action.priority,

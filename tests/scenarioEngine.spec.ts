@@ -105,7 +105,9 @@ describe('scenario engine', () => {
   describe('t1 crew-report fires at t ~ 10', () => {
     it('logs a crew-report event near t=10', () => {
       const { world } = runScenario(makeScenario(), 1, { untilS: 20 });
-      const crewEvents = world.events.filter((e) => e.type === 'crew-report');
+      const crewEvents = world.events.filter(
+        (e) => e.type === 'crew-report' && (e.payload as Record<string, unknown>).triggerId === 't1',
+      );
       expect(crewEvents.length).toBe(1);
       expect(Math.abs(crewEvents[0].t - 10)).toBeLessThanOrEqual(0.15);
       expect(crewEvents[0].payload).toMatchObject({
@@ -199,7 +201,7 @@ describe('scenario engine', () => {
       expect(launchEvents.length).toBe(1);
 
       const nbCrewEvents = world.events.filter(
-        (e) => e.type === 'crew-report' && (e.payload as Record<string, unknown>).station === 'EW',
+        (e) => e.type === 'crew-report' && (e.payload as Record<string, unknown>).triggerId === 'nb',
       );
       expect(nbCrewEvents.length).toBe(1);
       expect(Math.abs(nbCrewEvents[0].t - 40)).toBeLessThanOrEqual(0.15);
