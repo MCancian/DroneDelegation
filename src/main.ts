@@ -8,6 +8,8 @@ import { createCommandControls } from './ui/commandControls';
 import type { CommandControls } from './ui/commandControls';
 import { createCrewFeed } from './ui/crewFeed';
 import type { CrewFeed } from './ui/crewFeed';
+import { createChat } from './ui/chat';
+import type { ChatPanel } from './ui/chat';
 import { rangeTo } from './sim/geo';
 import { parseConfig, randomSeed } from './config';
 import { GameClock } from './sim/clock';
@@ -90,6 +92,15 @@ const panelRoot = document.getElementById('contact-panel');
 if (panelRoot instanceof HTMLElement) {
   panel = createContactPanel(panelRoot);
   panel.setActions([]);
+}
+
+// Chat panel
+const chatRoot = document.getElementById('chat');
+let chat: ChatPanel | null = null;
+if (chatRoot instanceof HTMLElement) {
+  chat = createChat(chatRoot, {
+    isEnded: () => clock.ended,
+  });
 }
 
 // Command controls in topbar
