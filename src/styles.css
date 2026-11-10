@@ -729,3 +729,65 @@ p {
   opacity: 0.5;
   cursor: default;
 }
+
+/* Engagement proposals remain visible above the chat input. */
+.proposals {
+  flex: 0 1 auto;
+  max-height: 45%;
+  overflow-y: auto;
+}
+
+.proposals[hidden] { display: none; }
+
+.proposal-card {
+  padding: 0.55rem;
+  margin: 0.4rem 0;
+  border: 2px solid #4499cc;
+  background: #0b202b;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.proposal-card p {
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0.25rem 0;
+}
+
+.proposal-timer {
+  display: block;
+  color: #ffd17f;
+  font-weight: bold;
+  margin: 0.3rem 0;
+}
+
+.proposal-actions { display: flex; gap: 0.5rem; }
+
+.proposal-actions button {
+  padding: 0.35rem 0.6rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.proposal-actions button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.proposal-veto {
+  border-color: #ff9a33;
+  background: #301b0c;
+  animation: proposal-warning 1s steps(2, jump-none) infinite;
+}
+
+@keyframes proposal-warning {
+  to { border-color: #fff0c0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proposal-veto { animation: none; }
+}
