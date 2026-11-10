@@ -19,6 +19,9 @@ import { loadScenario } from './sim/scenario/scenario';
 import { executeCommand, validateCommand } from './sim/commands';
 import type { Command } from './sim/commands';
 import type { Classification, RadarContact } from './sim/types';
+import { SYSTEM_PROMPT } from './ai/systemPrompt';
+import { SituationHistory, serializeSituation } from './ai/situation';
+import { handleChatReply } from './ai/chatOrders';
 
 function setText(id: string, text: string): void {
   const element = document.getElementById(id);
@@ -31,11 +34,15 @@ const config = parseConfig(window.location.search, randomSeed(), import.meta.env
 
 const { world, runner } = loadScenario(STRAIT_TRANSIT, config.seed);
 
+const situationHistory = new SituationHistory();
+situationHistory.observe(world);
+
 const clock = new GameClock({ timescale: config.timescale, durationS: STRAIT_TRANSIT.durationS });
 
 clock.onStep((dt) => {
   world.step(dt);
   runner.update();
+  situationHistory.observe(world);
   if (world.weapons.shipLost) {
     clock.finish();
   }
@@ -100,6 +107,20 @@ let chat: ChatPanel | null = null;
 if (chatRoot instanceof HTMLElement) {
   chat = createChat(chatRoot, {
     isEnded: () => clock.ended,
+    getMessages: (conversation) => {
+      const situationText = serializeSituation(world, situationHistory.acts());
+      return [
+        { role: 'system' as const, content: SYSTEM_PROMPT },
+        { role: 'system' as const, content: situationText },
+        ...conversation,
+      ];
+    },
+    onReply: (text, playerText) => {
+      const notices = handleChatReply(world, text, playerText, clock.ended);
+      for (const notice of notices) {
+        chat?.appendNotice(notice);
+      }
+    },
   });
 }
 

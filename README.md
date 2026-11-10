@@ -48,6 +48,33 @@ The top bar provides own-ship maneuver and point-defense controls; the contact p
 
 **Weapon inventory** — Displayed in the top bar (`SAM / CHAFF / GUN / CIWS` counts), updated each frame.
 
+## Chat (Jarvis)
+
+The chat panel shows an **online badge** when Jarvis is reachable (`GET /api/ai/health`). When offline, chat is disabled but crew reports and simulation continue.
+
+**Controls:** Enter sends, Shift+Enter inserts a newline, Cancel aborts the current stream.
+
+Each request sends the system prompt, a fresh sensor-only situation snapshot, and the last 20 conversation exchanges.
+
+**Direct orders** (imperative commands) execute as `ai-chat` through the command entrypoint with range/inventory checks. Use exact displayed track IDs including zero padding:
+
+- `Deploy chaff`
+- `Set course 090 speed 20 knots`
+- `Hail S-01`
+- `Engage A-01`
+
+Advice may show suggested action cards; those suggestions do not execute. Conditional or hypothetical orders are treated as advice in M4; no automatic delegation until M5. Errors and results appear in chat.
+
+## Backend configuration
+
+| Variable | Default | Notes |
+|----------|---------|-------|
+| `JARVIS_URL` | `http://127.0.0.1:8088` | OpenAI-compatible endpoint |
+| `JARVIS_MODEL` | `jarvis` | Model name |
+| `JARVIS_SLOTS` | *(unset)* | `off` disables flock (other machines only); normal uses 4 shared XDG slots |
+
+Endpoints: `GET /api/ai/health`, `POST /api/chat`.
+
 ## Implementation choices (not spec changes)
 
 The spec (§8) defines command semantics but leaves several numeric parameters unspecified. These are implementation choices recorded here:
