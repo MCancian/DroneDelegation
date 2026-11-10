@@ -5,6 +5,7 @@ export interface ContactAction {
   id: string;
   label: string;
   disabled?: boolean;
+  disabledReason?: string;
   onClick: () => void;
 }
 
@@ -54,6 +55,11 @@ export function createContactPanel(root: HTMLElement): ContactPanel {
 
   let lastKey = '';
 
+  // Action memoization state
+  let lastActionSignature = '';
+  const callbackRefs = new Map<string, () => void>();
+  const buttonRefs = new Map<string, HTMLButtonElement>();
+
   function update(contact: Contact | null, ownShip: OwnShip): void {
     if (contact === null) {
       header.textContent = 'No contact selected';
@@ -89,20 +95,69 @@ export function createContactPanel(root: HTMLElement): ContactPanel {
     }
   }
 
+  function computeSignature(actions: readonly ContactAction[]): string {
+    return actions
+      .map((a) => `${a.id}|${a.label}|${a.disabled ? 1 : 0}|${a.disabledReason ?? ''}`)
+      .join(';');
+  }
+
   function setActions(actions: readonly ContactAction[]): void {
+    const signature = computeSignature(actions);
+
+    if (signature === lastActionSignature) {
+      // Same structure: update callbacks safely via stored refs
+      for (const action of actions) {
+        callbackRefs.set(action.id, action.onClick);
+      }
+      return;
+    }
+
+    lastActionSignature = signature;
+    callbackRefs.clear();
+    buttonRefs.clear();
+
     while (actionsContainer.firstChild) {
       actionsContainer.removeChild(actionsContainer.firstChild);
     }
 
     for (const action of actions) {
+      callbackRefs.set(action.id, action.onClick);
+
+      const wrapper = document.createElement('span');
+      wrapper.style.display = 'inline-flex';
+      wrapper.style.alignItems = 'center';
+      wrapper.style.gap = '0.2rem';
+
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = action.label;
+      button.setAttribute('data-action', action.id);
+
       if (action.disabled) {
         button.disabled = true;
+        if (action.disabledReason) {
+          button.title = action.disabledReason;
+        }
       }
-      button.addEventListener('click', action.onClick);
-      actionsContainer.appendChild(button);
+
+      button.addEventListener('click', () => {
+        const cb = callbackRefs.get(action.id);
+        if (cb) cb();
+      });
+
+      buttonRefs.set(action.id, button);
+      wrapper.appendChild(button);
+
+      if (action.disabled && action.disabledReason) {
+        const reasonLabel = document.createElement('span');
+        reasonLabel.textContent = action.disabledReason;
+        reasonLabel.style.fontSize = '0.6rem';
+        reasonLabel.style.color = '#ff8800';
+        reasonLabel.setAttribute('aria-hidden', 'true');
+        wrapper.appendChild(reasonLabel);
+      }
+
+      actionsContainer.appendChild(wrapper);
     }
   }
 
@@ -110,6 +165,9 @@ export function createContactPanel(root: HTMLElement): ContactPanel {
     while (root.firstChild) {
       root.removeChild(root.firstChild);
     }
+    callbackRefs.clear();
+    buttonRefs.clear();
+    lastActionSignature = '';
   }
 
   return { update, setActions, destroy };

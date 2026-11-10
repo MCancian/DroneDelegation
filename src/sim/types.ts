@@ -49,6 +49,15 @@ export interface SensorInfo {
   visual: VisualInfo;
 }
 
+export interface ContactResponses {
+  iff?: IffInfo;
+  radio?: 'comply' | 'ignore';
+  radioRangeNm?: number;
+  hail?: 'answer' | 'ignore';
+  illuminate?: 'turn-away' | 'ignore';
+  warningShots?: 'turn-away' | 'ignore';
+}
+
 export type Rcs = 'normal' | 'low';
 
 export type SurfaceSize = 'ship' | 'small';
@@ -107,6 +116,7 @@ export interface Contact {
   motion?: ContactMotion;
   personsAboard?: number;
   ownMissile?: boolean;
+  responses?: ContactResponses;
   // Ground truth: what lookouts see within visual range. Never passed to UI/LLM directly.
   visualDescription?: string;
 }

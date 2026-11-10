@@ -35,3 +35,24 @@ npm test
 ```
 
 The AI assistant runs against a local OpenAI-compatible LLM server (default `http://127.0.0.1:8088`, model `jarvis`).
+
+## Manual controls
+
+The top bar provides own-ship maneuver and point-defense controls; the contact panel (bottom-left of radar) provides per-contact actions.
+
+**Own-ship maneuver** — Enter a course (degrees true, 0–359.9) and speed (knots, 0–35) then click **Maneuver**. The ship immediately adopts the commanded course and speed.
+
+**Point defense** — The `PD: AUTO` / `PD: MANUAL` toggle controls whether CIWS and chaff respond to inbound missiles automatically (actor `crew-auto`). The **Chaff** button deploys one chaff load manually.
+
+**Contact actions** — Click a radar track to select it. The panel shows only actions valid for that contact's domain. Disabled buttons display the reason inline (e.g. "out of range 52.3 nm > 40 nm") so the numeric constraint is visible without hovering.
+
+**Weapon inventory** — Displayed in the top bar (`SAM / CHAFF / GUN / CIWS` counts), updated each frame.
+
+## Implementation choices (not spec changes)
+
+The spec (§8) defines command semantics but leaves several numeric parameters unspecified. These are implementation choices recorded here:
+
+- **Maneuver speed cap 35 kts.** The spec does not state a maximum own-ship speed. 35 kts was chosen as a plausible destroyer sprint speed.
+- **Non-lethal response latency 5 s.** The spec says civilians "answer" hails/warnings and IFF reveals happen "after 5 s" for IFF specifically. A uniform 5 s delay was applied to all non-lethal command responses (hail, radio warning, illuminate, warning shots) for consistency. The spec does not mandate this uniformity.
+- **Warning shots consume 1 gun burst.** The spec (§8) says warning shots are "gun warning shots ahead of the contact" without specifying inventory cost. Consuming one burst from the gun inventory was chosen to prevent unlimited warning shots.
+- **A-9 radio range 28 nm.** The spec (§4.2) states A-9 "cannot hear military-distress warnings until ~28 nm." This is encoded as `radioRangeNm: 28` in the contact's `responses` field; radio warnings issued while the contact is beyond 28 nm are recorded as "ignored" in the event log.

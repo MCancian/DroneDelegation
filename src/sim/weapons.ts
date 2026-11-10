@@ -10,6 +10,7 @@ import type {
 import { bearingTo, knotsToNmPerSec, rangeTo, velocityFrom } from './geo';
 import { mulberry32, type Rng } from './rng';
 import { WEAPONS_CONFIG, type WeaponsConfig } from './scenario/weaponsConfig';
+import { executeCommand } from './commands';
 
 // ---------------------------------------------------------------------------
 // State types
@@ -324,6 +325,8 @@ export function fireCiws(world: World, targetId: string, actor: Actor): WeaponRe
   if (target.domain !== 'missile') return fail('invalid_target', `Target ${targetId} domain '${target.domain}' is not valid for CIWS`);
   if (!ws.ascms[targetId]) return fail('invalid_target', `Target ${targetId} is not an inbound missile`);
 
+  if (ws.ascms[targetId].ciwsEngaged) return fail('busy', `CIWS already engaged on ${targetId}`);
+
   const cfg = ws.config.ciws;
   const range = rangeTo(world.ownShip.position, target.position);
   if (range > cfg.maxRangeNm) {
@@ -448,7 +451,7 @@ export function stepWeapons(world: World, _dtS: number): void {
       const timeToImpact = rangeNm / speedNmPerSec;
 
       if (timeToImpact <= cfg.chaff.durationS) {
-        deployChaff(world, 'crew-auto');
+        executeCommand(world, { action: 'chaff' }, 'crew-auto');
         break;
       }
     }
@@ -461,12 +464,13 @@ export function stepWeapons(world: World, _dtS: number): void {
       if (!ascm || ascm.ciwsEngaged) continue;
       const contact = world.contactById(ascmId);
       if (!contact || !contact.alive) continue;
+      if (world.trackFor(ascmId)?.detected !== true) continue;
 
       const rangeNm = rangeTo(world.ownShip.position, contact.position);
       if (rangeNm > cfg.ciws.maxRangeNm) continue;
       if (world.ownShip.inventory.ciws < cfg.ciws.roundsPerEngagement) continue;
 
-      engageCiws(world, ascmId, 'crew-auto');
+      executeCommand(world, { action: 'ciws', target: ascmId }, 'crew-auto');
     }
   }
 

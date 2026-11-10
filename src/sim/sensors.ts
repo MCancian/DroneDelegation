@@ -245,6 +245,7 @@ export function visibleTracks(
     clone.faded = track.faded;
     delete clone.motion;
     delete clone.visualDescription;
+    delete clone.responses;
     if (track.visual.kind === 'identified') {
       clone.sensors.visual = { ...track.visual };
     }

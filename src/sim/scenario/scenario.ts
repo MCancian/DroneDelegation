@@ -1,4 +1,4 @@
-import type { Behavior, Classification, Domain, OwnShip, RadarContact, Rcs, SensorInfo, SurfaceSize, Truth, Vec2 } from '../types';
+import type { Behavior, Classification, ContactResponses, Domain, OwnShip, RadarContact, Rcs, SensorInfo, SurfaceSize, Truth, Vec2 } from '../types';
 import { World } from '../world';
 import { STEP_S } from '../clock';
 import { bearingTo, fromBearingRange, rangeTo } from '../geo';
@@ -30,6 +30,7 @@ export interface ScenarioContact {
   behavior: Behavior;
   spawnAtS?: number;
   visualDescription?: string;
+  responses?: ContactResponses;
 }
 
 export type ScenarioCondition =
@@ -130,6 +131,7 @@ export function buildContact(def: ScenarioContact, ownShip: OwnShip): RadarConta
   if (def.size !== undefined) contact.size = def.size;
   if (def.pDetect !== undefined) contact.pDetect = def.pDetect;
   if (def.personsAboard !== undefined) contact.personsAboard = def.personsAboard;
+  if (def.responses !== undefined) contact.responses = structuredClone(def.responses);
 
   contact.visualDescription = def.visualDescription ?? def.name;
 

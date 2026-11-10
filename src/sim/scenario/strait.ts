@@ -66,6 +66,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 15000,
       spawnAtS: 45,
       behavior: { kind: 'closeOnOwnship', speedKts: 420, mode: 'pure' },
+      responses: { radio: 'ignore', illuminate: 'ignore' },
     },
     {
       id: 'air-2',
@@ -78,6 +79,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 35000,
       sensors: { iff: { kind: 'mode3', code: '3412' } },
       behavior: { kind: 'straight' },
+      responses: { radio: 'comply', illuminate: 'turn-away' },
     },
     {
       id: 'air-3',
@@ -90,6 +92,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 37000,
       sensors: { iff: { kind: 'mode3', code: '5521' } },
       behavior: { kind: 'straight' },
+      responses: { radio: 'comply', illuminate: 'turn-away' },
     },
     {
       id: 'air-4',
@@ -102,6 +105,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 33000,
       sensors: { iff: { kind: 'mode3', code: '2203' } },
       behavior: { kind: 'straight' },
+      responses: { radio: 'comply', illuminate: 'turn-away' },
     },
     {
       id: 'air-5',
@@ -114,6 +118,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 36000,
       sensors: { iff: { kind: 'mode3', code: '6610' } },
       behavior: { kind: 'straight' },
+      responses: { radio: 'comply', illuminate: 'turn-away' },
     },
     {
       id: 'mpa',
@@ -127,6 +132,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 3000,
       sensors: { iff: { kind: 'mode4' } },
       behavior: { kind: 'loiter', center: { x: -8, y: -45 }, radiusNm: 8, speedKts: 220 },
+      responses: { iff: { kind: 'mode4' }, radio: 'comply', illuminate: 'ignore' },
     },
     {
       id: 'a9',
@@ -141,6 +147,7 @@ export const STRAIT_TRANSIT: Scenario = {
       sensors: { iff: { kind: 'mode3', code: '4217' } },
       spawnAtS: 540,
       behavior: { kind: 'straight' },
+      responses: { iff: { kind: 'mode3', code: '4217' }, radio: 'comply', radioRangeNm: 28, illuminate: 'ignore' },
     },
 
     // ── Surface ──────────────────────────────────────────────────────
@@ -156,6 +163,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 0,
       sensors: { ais: { kind: 'vessel', name: 'MT GULF PEARL', vesselType: 'tanker' } },
       behavior: { kind: 'straight' },
+      responses: { radio: 'comply', hail: 'answer', warningShots: 'turn-away' },
     },
     {
       id: 'container',
@@ -169,6 +177,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 0,
       sensors: { ais: { kind: 'vessel', name: 'MV ORIENT STAR', vesselType: 'container ship' } },
       behavior: { kind: 'straight' },
+      responses: { radio: 'comply', hail: 'answer', warningShots: 'turn-away' },
     },
     {
       id: 'ferry',
@@ -183,6 +192,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 0,
       sensors: { ais: { kind: 'vessel', name: 'FERRY AL NOOR', vesselType: 'passenger ferry' } },
       behavior: { kind: 'straight' },
+      responses: { radio: 'comply', hail: 'answer', warningShots: 'turn-away' },
     },
     {
       id: 'fast-ferry',
@@ -197,6 +207,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 0,
       sensors: { ais: { kind: 'vessel', name: 'HSC SEA SWIFT', vesselType: 'high-speed ferry' } },
       behavior: { kind: 'straight' },
+      responses: { radio: 'comply', hail: 'answer', warningShots: 'turn-away' },
     },
     {
       id: 'dhow-1',
@@ -210,6 +221,7 @@ export const STRAIT_TRANSIT: Scenario = {
       speedKts: 3,
       altitudeFt: 0,
       behavior: { kind: 'loiter', center: FISHING_FLEET_CENTER, radiusNm: 1.5, speedKts: 3 },
+      responses: { radio: 'comply', hail: 'ignore', warningShots: 'turn-away' },
     },
     {
       id: 'dhow-2',
@@ -224,6 +236,7 @@ export const STRAIT_TRANSIT: Scenario = {
       altitudeFt: 0,
       sensors: { ais: { kind: 'vessel', name: 'AL BAHAR 3', vesselType: 'fishing' } },
       behavior: { kind: 'loiter', center: FISHING_FLEET_CENTER, radiusNm: 1.5, speedKts: 4 },
+      responses: { radio: 'comply', hail: 'answer', warningShots: 'turn-away' },
     },
     {
       id: 'dhow-3',
@@ -237,6 +250,7 @@ export const STRAIT_TRANSIT: Scenario = {
       speedKts: 5,
       altitudeFt: 0,
       behavior: { kind: 'loiter', center: FISHING_FLEET_CENTER, radiusNm: 1.5, speedKts: 5 },
+      responses: { radio: 'comply', hail: 'ignore', warningShots: 'turn-away' },
     },
     {
       id: 'dhow-4',
@@ -250,6 +264,7 @@ export const STRAIT_TRANSIT: Scenario = {
       speedKts: 6,
       altitudeFt: 0,
       behavior: { kind: 'loiter', center: FISHING_FLEET_CENTER, radiusNm: 1.5, speedKts: 6 },
+      responses: { radio: 'comply', hail: 'ignore', warningShots: 'turn-away' },
     },
     {
       id: 'dhow-5',
@@ -263,6 +278,7 @@ export const STRAIT_TRANSIT: Scenario = {
       speedKts: 3.5,
       altitudeFt: 0,
       behavior: { kind: 'loiter', center: FISHING_FLEET_CENTER, radiusNm: 1.5, speedKts: 3.5 },
+      responses: { radio: 'comply', hail: 'ignore', warningShots: 'turn-away' },
     },
     {
       id: 's7',
@@ -277,6 +293,7 @@ export const STRAIT_TRANSIT: Scenario = {
       speedKts: 4,
       altitudeFt: 0,
       behavior: { kind: 'loiter', center: FISHING_FLEET_CENTER, radiusNm: 0.3, speedKts: 4 },
+      responses: { radio: 'ignore', hail: 'ignore', warningShots: 'ignore' },
     },
   ],
   triggers: [
