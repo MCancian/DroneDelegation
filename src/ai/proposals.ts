@@ -2,6 +2,7 @@ import { commandDomain, decide } from './autonomy';
 import { executeCommand, validateCommand, type Command } from '../sim/commands';
 import type { AutonomyDomain, AutonomyLevel } from '../sim/types';
 import type { World } from '../sim/world';
+import { isEventOfType } from '../sim/events';
 
 export type ProposalActor = 'ai-auto' | 'doctrine';
 export type ProposalStatus = 'pending' | 'advice' | 'approved' | 'denied' | 'vetoed' | 'expired' | 'executed' | 'failed';
@@ -31,8 +32,8 @@ export class ProposalManager {
     return this.proposals.some((p) => 'target' in p.command && p.command.target === target &&
       (p.status === 'pending' || p.status === 'executed' || p.status === 'approved' || p.status === 'denied' || p.status === 'vetoed')) ||
       this.world.events.some((event) => {
-        if (event.type !== 'command' || !['player', 'ai-chat', 'ai-auto', 'doctrine'].includes(event.actor)) return false;
-        const payload = event.payload as { ok?: boolean; command?: Command };
+        if (!isEventOfType(event, 'command') || !['player', 'ai-chat', 'ai-auto', 'doctrine'].includes(event.actor)) return false;
+        const payload = event.payload;
         return payload.ok === true && !!payload.command && 'target' in payload.command &&
           payload.command.target === target && (payload.command.action === 'engage_sam' || payload.command.action === 'engage_gun' || payload.command.action === 'ciws');
       });
@@ -105,9 +106,9 @@ export class ProposalManager {
 
   private invalidated(p: Proposal): boolean {
     return this.world.events.slice(this.eventCursors.get(p.id) ?? 0).some((event) => {
-      if (event.type === 'autonomy_changed') return (event.payload as { domain?: string }).domain === p.domain;
-      if (event.type !== 'command' || (event.actor !== 'player' && event.actor !== 'ai-chat')) return false;
-      const payload = event.payload as { ok?: boolean; command?: Command };
+      if (isEventOfType(event, 'autonomy_changed')) return event.payload.domain === p.domain;
+      if (!isEventOfType(event, 'command') || (event.actor !== 'player' && event.actor !== 'ai-chat')) return false;
+      const payload = event.payload;
       return payload.ok === true && !!payload.command && 'target' in payload.command && 'target' in p.command &&
         payload.command.target === p.command.target &&
         (payload.command.action === 'engage_sam' || payload.command.action === 'engage_gun' || payload.command.action === 'ciws');
@@ -123,7 +124,7 @@ export class ProposalManager {
     this.log(p.status, p, result.ok ? undefined : result.error);
   }
 
-  private log(action: string, proposal: Proposal, error?: string): void {
+  private log(action: 'created' | 'advice' | 'approved' | 'denied' | 'vetoed' | 'expired' | 'executed' | 'failed', proposal: Proposal, error?: string): void {
     this.world.logEvent(`proposal_${action}`, proposal.actor, { ...structuredClone(proposal), ...(error ? { error } : {}) });
   }
 }

@@ -240,3 +240,19 @@ The tactical proposal PR
 merged. Final doctrine checks additionally reject future hostile-act timestamps;
 the unit fixture now represents genuinely prior observations and explicitly
 checks the event-time boundary before starting the 15-second delay.
+
+## Milestone 6 implementation observations
+
+Started 2026-11-10 from `aa810f8`. Scope: #35 (typed event contracts),
+#17 (deterministic after-action report), and #18 (optional AI debrief).
+Implementation uses native `gpt-6.1-terra` subagents in isolated staging copies.
+Evidence: `/var/home/qyfs/.codex/task-evidence/drone-m6-20261110/`.
+
+| Area | Observation | Proposed improvement |
+| --- | --- | --- |
+| Codex | The required `development-evidence` skill directory remains absent and the alternate alias still points to that absent directory. | Validate skill availability at startup; reuse the established milestone evidence format while its owner is repaired. |
+| Codex | Broad filesystem discovery and combined source reads exceeded the native byte guard even with sufficient token limits. The guard retained the full capture and exit verdict. | Scope discovery to likely skill roots and read individual source ranges within the effective byte budget. |
+| DroneDelegation | The milestone display name is `M6 After-Action Report`; a differently formatted milestone filter returned an empty issue list with exit 0. | Resolve milestone numbers and canonical titles before listing work; distinguish an empty match from an empty milestone. |
+| DroneDelegation | `docs/TOOLING.md` retains Jarvis-only authoring and historical feature exclusions from the tooling task, while this request explicitly selects Terra. | Separate stable execution rules from task-specific scope and authorship rules in repository documentation; honor the explicit model override. |
+| Codex | Native noninteractive commands using login-shell setup emitted Starship `TERM=dumb` warnings and terminal control sequences. | Skip interactive prompt initialization for noninteractive execution; use `login: false` for inspections and gates that do not need login setup. |
+| DroneDelegation | Allowing arbitrary event names through the typed producer API lets a widened `string` bypass known-payload checks. | Give custom events an explicit API that rejects known event names; test both compile-time payload errors and runtime impersonation guards. |

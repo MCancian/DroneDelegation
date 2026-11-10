@@ -130,7 +130,7 @@ describe('doctrine from observed evidence', () => {
     doctrine.update();
     expect(world.events.filter((e) => e.type === 'doctrine_match')).toHaveLength(0);
     boat.sensors.ais = { kind: 'none' };
-    world.logEvent('command_response', 'player', { action: 'hail', target: 'boat', outcome: 'answered' });
+    world.logEvent('command_response', 'player', { action: 'hail', target: 'boat', trackId: 'S-01', outcome: 'answered' });
     world.time = 2;
     doctrine.update();
     expect(world.events.filter((e) => e.type === 'doctrine_match')).toHaveLength(0);

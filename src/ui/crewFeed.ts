@@ -1,3 +1,4 @@
+import { isEventOfType } from '../sim/events';
 import type { GameEvent } from '../sim/types';
 
 export interface CrewFeed {
@@ -97,9 +98,9 @@ export function createCrewFeed(
       const ev = events[cursor];
       cursor++;
 
-      if (ev.type !== 'crew-report') continue;
+      if (!isEventOfType(ev, 'crew-report')) continue;
 
-      const payload = ev.payload as CrewPayload;
+      const payload: CrewPayload = ev.payload;
       const station = typeof payload.station === 'string' ? payload.station : '';
       const priority = typeof payload.priority === 'string' ? payload.priority : 'routine';
       const rawText = typeof payload.text === 'string' ? payload.text : '';
