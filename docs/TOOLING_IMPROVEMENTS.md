@@ -256,3 +256,30 @@ Evidence: `/var/home/qyfs/.codex/task-evidence/drone-m6-20261110/`.
 | DroneDelegation | `docs/TOOLING.md` retains Jarvis-only authoring and historical feature exclusions from the tooling task, while this request explicitly selects Terra. | Separate stable execution rules from task-specific scope and authorship rules in repository documentation; honor the explicit model override. |
 | Codex | Native noninteractive commands using login-shell setup emitted Starship `TERM=dumb` warnings and terminal control sequences. | Skip interactive prompt initialization for noninteractive execution; use `login: false` for inspections and gates that do not need login setup. |
 | DroneDelegation | Allowing arbitrary event names through the typed producer API lets a widened `string` bypass known-payload checks. | Give custom events an explicit API that rejects known event names; test both compile-time payload errors and runtime impersonation guards. |
+
+Integration review found that pending chat needed teardown before report analysis:
+the existing action parser logs validation errors before its ended guard. The
+report end handler now aborts chat and health requests before taking its snapshot.
+The initial browser proof also assumed title casing in visible text; CSS renders
+section headings in uppercase. The proof now checks visible labels without
+depending on casing, preserving the original failed log.
+
+Normal-damage delegated browser play with seed 123 confirmed the existing M5
+balancing nuance: S-07 was engaged before launch, but the gun missed. Report
+lessons must distinguish timely engagement from successful neutralization and
+must not imply the player waited when a recorded engagement proves otherwise.
+
+Screenshot review caught a CSS inheritance defect that functional browser checks
+did not detect: the game's global muted paragraph rule overrode the report's
+intended text color. A scoped report rule restores readable contrast. Keep visual
+review alongside behavioral proofs for new overlays, including a narrow viewport.
+
+Final combined staging verification passed 175 tooling tests, typecheck, 682
+application tests across 50 files, and the production build. Chromium verified
+natural completion, normal-damage early ship loss, frozen controls, new-seed
+replay, doctrine attribution, successful and failed debrief streams, a 390 px
+viewport, and cancellation of pending chat at scenario end, with no page errors.
+Debrief browser checks use controlled SSE responses; live model prose was not
+part of these deterministic proofs. Implementation and complete-file hashes,
+native session IDs, retained failed checks, repair decisions, and final logs are
+stored in the external evidence directory above.

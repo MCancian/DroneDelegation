@@ -27,6 +27,8 @@ import { ProposalManager } from './ai/proposals';
 import { TacticalLoop } from './ai/tacticalLoop';
 import { createProposals } from './ui/proposals';
 import { Doctrine } from './ai/doctrine';
+import { analyze } from './report/analyze';
+import { createReport } from './ui/report';
 
 const config = parseConfig(window.location.search, randomSeed(), import.meta.env.DEV);
 
@@ -43,6 +45,7 @@ clock.onStep((dt) => {
   situationHistory.observe(world);
   if (world.weapons.shipLost) {
     clock.finish();
+    return;
   }
   proposals.update();
   doctrine.update();
@@ -156,6 +159,7 @@ clock.onEnd(() => {
   tacticalLoop.stop();
   proposals.update();
   proposalPanel?.update();
+  chat?.destroy();
 });
 window.addEventListener('pagehide', () => tacticalLoop.stop());
 
@@ -165,6 +169,21 @@ let controls: CommandControls | null = null;
 if (topbar instanceof HTMLElement) {
   controls = createCommandControls(world, topbar, STRAIT_TRANSIT.durationS);
 }
+
+// Render only after the end callbacks have stopped tactical work and proposals.
+clock.onEnd(() => {
+  controls?.update();
+  const app = document.getElementById('app');
+  if (app) app.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('button, input, select, textarea').forEach(el => { el.disabled = true; });
+  const report = analyze(world.events, { scenario: STRAIT_TRANSIT, seed: config.seed, endedAtS: world.time, hullPct: world.ownShip.hullPct, shipLost: world.weapons.shipLost });
+  createReport(report, { onReplay: () => {
+    const url = new URL(window.location.href);
+    let next = randomSeed();
+    if (next === config.seed) next = (next + 1) >>> 0;
+    url.searchParams.set('seed', String(next));
+    window.location.assign(url.toString());
+  } });
+});
 
 // Status element for runtime failures
 let statusEl: HTMLElement | null = null;
@@ -331,6 +350,7 @@ function buildActionsForContact(
 }
 
 function dispatch(cmd: Command): void {
+  if (isEnded()) return;
   const result = executeCommand(world, cmd, 'player');
   if (!result.ok) {
     showStatus(result.error);
@@ -362,6 +382,7 @@ if (canvas instanceof HTMLCanvasElement) {
 
   if (rangeButtons instanceof HTMLElement) {
     rangeButtons.addEventListener('click', (event) => {
+      if (isEnded()) return;
       const target = event.target;
       if (!(target instanceof HTMLElement)) {
         return;
@@ -380,6 +401,7 @@ if (canvas instanceof HTMLCanvasElement) {
   }
 
   canvas.addEventListener('click', (event) => {
+    if (isEnded()) return;
     const rect = canvas.getBoundingClientRect();
     const px = event.clientX - rect.left;
     const py = event.clientY - rect.top;
