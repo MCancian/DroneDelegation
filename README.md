@@ -86,6 +86,13 @@ proposals for that track during the playthrough. Changing a domain's authority
 cancels its pending proposals, and execution rechecks target and weapon validity.
 Autonomous execution results and failures appear in chat.
 
+The deterministic doctrine backstop evaluates sensor observations each game
+second, even with Jarvis offline. It logs ROE-3 profile matches and ROE-5 group
+departures under HOLD, then routes qualifying engagements through the same
+proposal manager after 15 seconds of continuous matching. The Air profile rule
+deliberately matches the later civilian airliner. Surface doctrine fires the gun
+within 9 nm; weapon outcomes retain the scenario's normal hit probabilities.
+
 ## Backend configuration
 
 | Variable | Default | Notes |
@@ -104,6 +111,12 @@ The spec (§8) defines command semantics but leaves several numeric parameters u
 - **Non-lethal response latency 5 s.** The spec says civilians "answer" hails/warnings and IFF reveals happen "after 5 s" for IFF specifically. A uniform 5 s delay was applied to all non-lethal command responses (hail, radio warning, illuminate, warning shots) for consistency. The spec does not mandate this uniformity.
 - **Warning shots consume 1 gun burst.** The spec (§8) says warning shots are "gun warning shots ahead of the contact" without specifying inventory cost. Consuming one burst from the gun inventory was chosen to prevent unlimited warning shots.
 - **A-9 radio range 28 nm.** The spec (§4.2) states A-9 "cannot hear military-distress warnings until ~28 nm." This is encoded as `radioRangeNm: 28` in the contact's `responses` field; radio warnings issued while the contact is beyond 28 nm are recorded as "ignored" in the event log.
+
+- **Observed group departure.** Doctrine infers a group from fresh surface tracks
+  within 2 nm, then requires at least 0.1 nm movement while relative closing
+  speed exceeds 30 kts. It ignores observations older than 12 game seconds.
+  These are implementation choices for sensor-visible inference; doctrine does
+  not read physical size, planned behaviors, or hidden contact truth.
 
 ## Tooling
 
