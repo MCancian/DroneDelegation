@@ -174,13 +174,12 @@ Jarvis runtime remains unchanged. Evidence:
 | DroneDelegation | `scripts/node22.sh` intentionally resets cwd to the live repository, so invoking it from an isolated staging copy would verify the wrong source tree. | Add an explicit staging-root option; meanwhile use the verified pinned Node/npm directory on PATH and retain the staging cwd in execution evidence. |
 | DroneDelegation | The unchanged tooling cancellation test sent SIGTERM after a fixed 100 ms; under parallel development load it exited `-15` before the caller installed its handlers. The isolated focused rerun passed without code changes. | Wait for the caller's published running metadata before signalling; retain the initial failed gate and require a fresh full gate rather than weakening the expected cancellation verdict. |
 | DroneDelegation | The M5 milestone description says delegation “stops S-7,” while §7.4 and #16 explicitly require engagement before launch. Seed 123's pre-launch gun burst can miss with the existing 0.35 hit probability. | Distinguish timely engagement from guaranteed neutralization in acceptance language; keep hit probability and target-proposal dedup unchanged unless balancing is separately authorized. |
-
 | DroneDelegation | A staged tactical implementation initially assumed the action-parser argument order incorrectly; typecheck caught it before application. | Include exact existing exported signatures in delegation contracts, alongside newly agreed interfaces; always typecheck complete staged files. |
 
 A second full run exposed the same fixture class in slot contention: its release
 timer started before the subprocess initialized, measuring only 0.05 s of actual
 queue time against the unchanged ≥0.1 s expectation. The autonomy Terra agent
-owns a focused fixture repair: synchronize cancellation and release with caller
+repaired these fixtures by synchronizing cancellation and release with caller
 readiness using bounded waits, preserving production code and assertions.
 
 Further integration review found that tactical range-entry triggers need both
@@ -218,3 +217,26 @@ Group departure also needs an explicit observed-data fixture: physical size and
 scripted motion are intentionally excluded from sensor tracks. The implementation
 records its chosen proximity, movement and freshness thresholds, and tests stale
 group peers, answered hails, AIS traffic and access to hidden contact data.
+
+GitHub's runner annotations report that `actions/checkout@v4` and
+`actions/setup-node@v4` target deprecated Node 20 action runtimes and are forced
+to Node 24. The workflow still explicitly installs Node 22.14.0 for the project.
+They also announce the `ubuntu-latest` transition to Ubuntu 26. Review action
+runtime upgrades and runner-image choices in the CI owner; avoid conflating the
+actions' runtime with the application's pinned Node version.
+
+The repaired autonomy PR [#42](https://github.com/MCancian/DroneDelegation/pull/42)
+passed CI and merged. Local verification of the final combined implementation
+passed 175 tooling tests, typecheck, 666 application tests across 46 files, and
+production build. Chromium verified authority controls, all proposal routes and
+countdowns, and normal-damage offline playthroughs with delegated and HOLD
+authority. The delegated run reached 15:00, executed both doctrine engagements,
+and reported no page errors. The HOLD run made no autonomous requests or
+engagements. The temporary Vite proof server was stopped through native session
+cancellation after those proofs completed.
+
+The tactical proposal PR
+[#43](https://github.com/MCancian/DroneDelegation/pull/43) also passed CI and
+merged. Final doctrine checks additionally reject future hostile-act timestamps;
+the unit fixture now represents genuinely prior observations and explicitly
+checks the event-time boundary before starting the 15-second delay.

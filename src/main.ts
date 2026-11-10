@@ -26,6 +26,7 @@ import { handleChatReply } from './ai/chatOrders';
 import { ProposalManager } from './ai/proposals';
 import { TacticalLoop } from './ai/tacticalLoop';
 import { createProposals } from './ui/proposals';
+import { Doctrine } from './ai/doctrine';
 
 const config = parseConfig(window.location.search, randomSeed(), import.meta.env.DEV);
 
@@ -44,6 +45,7 @@ clock.onStep((dt) => {
     clock.finish();
   }
   proposals.update();
+  doctrine.update();
   tacticalLoop.update();
 });
 
@@ -127,6 +129,10 @@ if (chatRoot instanceof HTMLElement) {
 
 const isEnded = (): boolean => clock.ended || world.weapons.shipLost || world.time >= STRAIT_TRANSIT.durationS - 1e-9;
 const proposals = new ProposalManager(world, isEnded);
+const doctrine = new Doctrine(world, proposals, {
+  getHostileActs: () => situationHistory.acts(),
+  isEnded,
+});
 const proposalPanel = chatRoot instanceof HTMLElement ? createProposals(chatRoot, proposals, isEnded) : null;
 for (const type of ['proposal_executed', 'proposal_failed'] as const) {
   world.eventBus.on(type, (event) => {
