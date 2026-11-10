@@ -1,5 +1,5 @@
 import type { World } from '../world';
-import type { RadarContact, Vec2 } from '../types';
+import type { RadarContact, Vec2, IffInfo, AisInfo, EsmInfo, VisualInfo } from '../types';
 import { bearingTo, rangeTo, cpa, closingSpeed, velocityFrom, angleDiff } from '../geo';
 import type { CrewStation, CrewPriority } from './scenario';
 import { executeCommand } from '../commands';
@@ -20,6 +20,13 @@ interface SafeSnap {
 
 interface MissileAssoc { missileId: string; launcherId: string; }
 
+interface AnnouncedSensors {
+  iff: string;
+  ais: string;
+  esm: string;
+  visual: string;
+}
+
 interface CrewState {
   prev: Map<string, SafeSnap>;
   known: Set<string>;
@@ -29,6 +36,8 @@ interface CrewState {
   missileToLauncher: Map<string, string>;
   pendingHostile: MissileAssoc[];
   knownTrackIds: Map<string, string>;
+  announced: Map<string, AnnouncedSensors>;
+  pendingEwReserve: Set<string>;
 }
 
 const stateMap = new WeakMap<World, CrewState>();
@@ -38,7 +47,7 @@ function getState(world: World): CrewState {
   if (!s) {
     s = { prev: new Map(), known: new Set(), eventCursor: 0, cooldowns: new Map(),
       reportedMissiles: new Set(), missileToLauncher: new Map(), pendingHostile: [],
-      knownTrackIds: new Map() };
+      knownTrackIds: new Map(), announced: new Map(), pendingEwReserve: new Set() };
     stateMap.set(world, s);
   }
   return s;
@@ -85,6 +94,33 @@ function trackLabel(world: World, st: CrewState, contactId: string): string {
   return 'unknown track';
 }
 
+function iffSig(iff: IffInfo): string {
+  if (iff.kind === 'none') return 'none';
+  if (iff.kind === 'mode3') return `mode3:${iff.code}`;
+  return 'mode4';
+}
+function aisSig(ais: AisInfo): string {
+  if (ais.kind === 'none') return 'none';
+  return `vessel:${ais.name}:${ais.vesselType}`;
+}
+function esmSig(esm: EsmInfo): string {
+  if (esm.kind === 'none') return 'none';
+  return `emitter:${esm.emitterType}`;
+}
+function visSig(vis: VisualInfo): string {
+  if (vis.kind === 'none') return 'none';
+  return `identified:${vis.description}`;
+}
+
+function getAnnounced(st: CrewState, id: string): AnnouncedSensors {
+  let a = st.announced.get(id);
+  if (!a) {
+    a = { iff: 'none', ais: 'none', esm: 'none', visual: 'none' };
+    st.announced.set(id, a);
+  }
+  return a;
+}
+
 function processEvents(world: World, st: CrewState): void {
   const evts = world.events;
   while (st.eventCursor < evts.length) {
@@ -95,9 +131,28 @@ function processEvents(world: World, st: CrewState): void {
     if (ev.type === 'crew-report') {
       const station = p.station as string;
       const contactId = p.contactId as string | undefined;
-      if (station === 'EW' && contactId) st.cooldowns.set(`EW:${contactId}:esm`, t);
       if (station === 'Lookouts' && contactId) st.cooldowns.set(`Lookouts:${contactId}:visEta`, t);
       if (station === 'Radio' && contactId) st.cooldowns.set(`Radio:${contactId}:civil`, t);
+      if (station === 'EW' && contactId) {
+        const contact = world.contactById(contactId);
+        if (contact && contact.alive) {
+          const track = world.trackFor(contactId);
+          if (track && track.detected) {
+            const esm = contact.sensors.esm;
+            const text = (p.text as string) ?? '';
+            if (esm.kind === 'emitter') {
+              if (text.includes(esm.emitterType)) {
+                const ann = getAnnounced(st, contactId);
+                ann.esm = esmSig(esm);
+              }
+            } else {
+              if (text.includes('emitting')) {
+                st.pendingEwReserve.add(contactId);
+              }
+            }
+          }
+        }
+      }
       continue;
     }
 
@@ -127,7 +182,8 @@ function processEvents(world: World, st: CrewState): void {
           if (iff.kind === 'mode4') emit(world, { station: 'TAO-Air', priority: 'routine', text: `TAO-Air: ${trackId} Mode 4 valid, friendly.`, contactId: target, trackId });
           else if (iff.kind === 'mode3') emit(world, { station: 'TAO-Air', priority: 'routine', text: `TAO-Air: ${trackId} squawking Mode 3 ${iff.code}.`, contactId: target, trackId });
           else emit(world, { station: 'TAO-Air', priority: 'priority', text: `TAO-Air: ${trackId} no IFF response.`, contactId: target, trackId });
-          st.cooldowns.set(`iff:${target}`, t);
+          const ann = getAnnounced(st, target);
+          ann.iff = iffSig(iff);
         }
       } else if (action === 'radio_warning') {
         if (outcome === 'ignored') emit(world, { station: 'Radio', priority: 'priority', text: `Radio: ${trackId} ignored warning.`, contactId: target, trackId });
@@ -203,32 +259,23 @@ function processTrack(world: World, st: CrewState, track: RadarContact, t: numbe
     }
   }
 
-  // Speed jump > 10 kts (only if prev existed)
   if (!firstSeen) {
     const speedDelta = Math.abs(track.speedKts - prev.speedKts);
     if (speedDelta > 10) {
-      const key = `speed:${track.id}`;
-      if (cdOk(st, key, t, 30)) {
-        const stn = stationForDomain(track.domain);
-        emit(world, { station: stn, priority: 'priority', text: `${stn}: ${track.trackId} speed change ${Math.round(prev.speedKts)} to ${Math.round(track.speedKts)} kts.`, contactId: track.id, trackId: track.trackId });
-      }
+      const stn = stationForDomain(track.domain);
+      emit(world, { station: stn, priority: 'priority', text: `${stn}: ${track.trackId} speed change ${Math.round(prev.speedKts)} to ${Math.round(track.speedKts)} kts.`, contactId: track.id, trackId: track.trackId });
     }
 
-    // Turn-toward
     const ownBrg = bearingTo(track.position, ownPos);
     const prevErr = Math.abs(angleDiff(prev.courseDeg, ownBrg));
     const nowErr = Math.abs(angleDiff(track.courseDeg, ownBrg));
     const courseChange = Math.abs(angleDiff(prev.courseDeg, track.courseDeg));
     if (prevErr > 45 && nowErr <= 30 && courseChange > 20) {
-      const key = `turnToward:${track.id}`;
-      if (cdOk(st, key, t, 30)) {
-        const stn = stationForDomain(track.domain);
-        emit(world, { station: stn, priority: 'priority', text: `${stn}: ${track.trackId} turning toward us, course ${fmtBrg(track.courseDeg)}.`, contactId: track.id, trackId: track.trackId });
-      }
+      const stn = stationForDomain(track.domain);
+      emit(world, { station: stn, priority: 'priority', text: `${stn}: ${track.trackId} turning toward us, course ${fmtBrg(track.courseDeg)}.`, contactId: track.id, trackId: track.trackId });
     }
   }
 
-  // Closing CPA < 2
   const ownVel = velocityFrom(world.ownShip.courseDeg, world.ownShip.speedKts);
   const tgtVel = velocityFrom(track.courseDeg, track.speedKts);
   const cpaRes = cpa(ownPos, ownVel, track.position, tgtVel);
@@ -241,7 +288,6 @@ function processTrack(world: World, st: CrewState, track: RadarContact, t: numbe
     }
   }
 
-  // Lookouts visual ETA for fast closing surface track (works first seen)
   if (track.domain === 'surface' && track.speedKts > 30 && track.sensors.ais.kind === 'none'
     && track.sensors.visual.kind === 'none' && cs > 0 && rng > world.sensorConfig.visualRangeNm) {
     const key = `Lookouts:${track.id}:visEta`;
@@ -257,56 +303,58 @@ function processTrack(world: World, st: CrewState, track: RadarContact, t: numbe
     }
   }
 
-  // Sensor info changes (works on first seen via defaultSnap)
-  processSensorInfo(world, st, track, prev, t, firstSeen);
+  processSensorInfo(world, st, track);
 
-  // Classification
   processClassification(world, track);
 }
 
-function processSensorInfo(world: World, st: CrewState, track: RadarContact, prev: SafeSnap, t: number, firstSeen: boolean): void {
+function processSensorInfo(world: World, st: CrewState, track: RadarContact): void {
   const cur = track.sensors;
-  const old = prev.sensors;
+  const ann = getAnnounced(st, track.id);
 
-  // IFF: compare contents
-  const iffChanged = cur.iff.kind !== old.iff.kind
-    || (cur.iff.kind === 'mode3' && old.iff.kind === 'mode3' && cur.iff.code !== (old.iff as { code: string }).code);
-  if (iffChanged && cur.iff.kind !== 'none') {
-    const key = `iff:${track.id}`;
-    if (cdOk(st, key, t, 5)) {
+  const curIff = iffSig(cur.iff);
+  if (curIff !== ann.iff) {
+    if (cur.iff.kind !== 'none') {
       if (cur.iff.kind === 'mode4') emit(world, { station: 'TAO-Air', priority: 'routine', text: `TAO-Air: ${track.trackId} Mode 4 valid.`, contactId: track.id, trackId: track.trackId });
       else if (cur.iff.kind === 'mode3') emit(world, { station: 'TAO-Air', priority: 'routine', text: `TAO-Air: ${track.trackId} Mode 3 ${cur.iff.code}.`, contactId: track.id, trackId: track.trackId });
+      ann.iff = curIff;
+    } else {
+      ann.iff = 'none';
     }
   }
 
-  // AIS: compare contents (name/type may change same kind)
-  const aisChanged = cur.ais.kind !== old.ais.kind
-    || (cur.ais.kind === 'vessel' && old.ais.kind === 'vessel'
-      && (cur.ais.name !== (old.ais as { name: string }).name || cur.ais.vesselType !== (old.ais as { vesselType: string }).vesselType));
-  if (aisChanged && cur.ais.kind === 'vessel') {
-    const key = `ais:${track.id}`;
-    if (cdOk(st, key, t, 30)) {
+  const curAis = aisSig(cur.ais);
+  if (curAis !== ann.ais) {
+    if (cur.ais.kind === 'vessel') {
       emit(world, { station: 'SWC', priority: 'routine', text: `SWC: ${track.trackId} AIS ${cur.ais.name} (${cur.ais.vesselType}).`, contactId: track.id, trackId: track.trackId });
+      ann.ais = curAis;
+    } else {
+      ann.ais = 'none';
     }
   }
 
-  // ESM: compare emitterType
-  const esmChanged = cur.esm.kind !== old.esm.kind
-    || (cur.esm.kind === 'emitter' && old.esm.kind === 'emitter' && cur.esm.emitterType !== (old.esm as { emitterType: string }).emitterType);
-  if (esmChanged && cur.esm.kind === 'emitter') {
-    const key = `EW:${track.id}:esm`;
-    if (cdOk(st, key, t, 30)) {
-      emit(world, { station: 'EW', priority: 'priority', text: `EW: ${track.trackId} emitting ${cur.esm.emitterType}.`, contactId: track.id, trackId: track.trackId });
+  const curEsm = esmSig(cur.esm);
+  if (curEsm !== ann.esm) {
+    if (cur.esm.kind === 'emitter') {
+      if (st.pendingEwReserve.has(track.id)) {
+        st.pendingEwReserve.delete(track.id);
+        ann.esm = curEsm;
+      } else {
+        emit(world, { station: 'EW', priority: 'priority', text: `EW: ${track.trackId} emitting ${cur.esm.emitterType}.`, contactId: track.id, trackId: track.trackId });
+        ann.esm = curEsm;
+      }
+    } else {
+      ann.esm = 'none';
     }
   }
 
-  // Visual: compare description
-  const visChanged = cur.visual.kind !== old.visual.kind
-    || (cur.visual.kind === 'identified' && old.visual.kind === 'identified' && cur.visual.description !== (old.visual as { description: string }).description);
-  if (visChanged && cur.visual.kind === 'identified') {
-    const key = `visual:${track.id}`;
-    if (cdOk(st, key, t, 30)) {
+  const curVis = visSig(cur.visual);
+  if (curVis !== ann.visual) {
+    if (cur.visual.kind === 'identified') {
       emit(world, { station: 'Lookouts', priority: 'priority', text: `Lookouts: ${track.trackId} identified as ${cur.visual.description}.`, contactId: track.id, trackId: track.trackId });
+      ann.visual = curVis;
+    } else {
+      ann.visual = 'none';
     }
   }
 }
@@ -347,7 +395,6 @@ function processMissileFlash(world: World, st: CrewState, tracks: RadarContact[]
     }
   }
 
-  // Process pending hostile associations: only classify launcher whose missile is now visible
   for (let i = st.pendingHostile.length - 1; i >= 0; i--) {
     const assoc = st.pendingHostile[i];
     if (!st.reportedMissiles.has(assoc.missileId)) continue;
