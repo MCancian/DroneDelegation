@@ -138,7 +138,7 @@ export function serializeSituation(
   lines.push(`OWN: pos(${own.position.x.toFixed(1)},${own.position.y.toFixed(1)}) course ${Math.round(own.courseDeg)} spd ${Math.round(own.speedKts)}kt hull ${Math.round(own.hullPct)}%`);
   lines.push(`INV: SAM ${own.inventory.sam} chaff ${own.inventory.chaff} gun ${own.inventory.gunBursts} CIWS ${own.inventory.ciws}`);
   lines.push(`PD: ${world.weapons.pointDefense}`);
-  lines.push(`AIR HOLD | SURFACE HOLD`);
+  lines.push(`AIR ${world.autonomy.air} | SURFACE ${world.autonomy.surface}`);
   lines.push('');
   lines.push('TRACKS:');
 

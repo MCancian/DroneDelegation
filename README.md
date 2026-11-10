@@ -63,7 +63,20 @@ Each request sends the system prompt, a fresh sensor-only situation snapshot, an
 - `Hail S-01`
 - `Engage A-01`
 
-Advice may show suggested action cards; those suggestions do not execute. Conditional or hypothetical orders are treated as advice in M4; no automatic delegation until M5. Errors and results appear in chat.
+Advice may show suggested action cards; those suggestions do not execute. Conditional or hypothetical chat orders are treated as advice. Errors and results appear in chat.
+
+## Delegation controls
+
+The top bar sets Air and Surface authority independently. Both begin at **HOLD**.
+
+- **HOLD:** advice only.
+- **CONSENT:** autonomous engagement proposals require approval within 30 game seconds.
+- **VETO:** proposals execute after 10 game seconds unless cancelled.
+- **WEAPONS FREE:** autonomous engagements execute immediately.
+
+Point defense remains a separate AUTO/MANUAL control. Direct player actions and
+explicit chat orders remain available at every authority level. Authority changes
+and command snapshots are retained in the event log.
 
 ## Backend configuration
 

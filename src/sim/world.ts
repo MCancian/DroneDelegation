@@ -1,4 +1,4 @@
-import type { Actor, GameEvent, Missile, OwnShip, RadarContact, SensorTrack } from './types';
+import type { Actor, AutonomyState, GameEvent, Missile, OwnShip, RadarContact, SensorTrack } from './types';
 import { move } from './geo';
 import { mulberry32, type Rng } from './rng';
 import { stepKinematics } from './kinematics';
@@ -40,6 +40,7 @@ export class World {
   readonly sensorConfig: SensorConfig;
   readonly sensors: SensorState;
   readonly weapons: WeaponsState;
+  readonly autonomy: AutonomyState = { air: 'HOLD', surface: 'HOLD' };
 
   private readonly kinematicsRng: Rng;
   private readonly sensorRng: Rng;

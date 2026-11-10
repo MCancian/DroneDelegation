@@ -6,6 +6,7 @@ import { createContactPanel } from './ui/contactPanel';
 import type { ContactPanel, ContactAction } from './ui/contactPanel';
 import { createCommandControls } from './ui/commandControls';
 import type { CommandControls } from './ui/commandControls';
+import { createAutonomyControls } from './ui/autonomyControls';
 import { createCrewFeed } from './ui/crewFeed';
 import type { CrewFeed } from './ui/crewFeed';
 import { createChat } from './ui/chat';
@@ -61,8 +62,10 @@ const hud = createHud();
 hud.setClock(0);
 hud.setHull(world.ownShip.hullPct);
 
-setText('autonomy-air', 'Air: HOLD');
-setText('autonomy-surface', 'Surface: HOLD');
+const autonomyRoot = document.getElementById('autonomy');
+const autonomyControls = autonomyRoot instanceof HTMLElement
+  ? createAutonomyControls(world, autonomyRoot, () => clock.ended)
+  : null;
 
 const canvas = document.getElementById('radar-canvas');
 const rangeButtons = document.getElementById('range-buttons');
@@ -373,6 +376,7 @@ if (canvas instanceof HTMLCanvasElement) {
 
     hud.setClock(clock.time);
     hud.setHull(world.ownShip.hullPct);
+    autonomyControls?.update();
 
     const tracks = world.visibleTracks();
 

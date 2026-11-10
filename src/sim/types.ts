@@ -5,6 +5,14 @@ export interface Vec2 {
 
 export type Domain = 'air' | 'surface' | 'missile';
 
+export type AutonomyDomain = 'air' | 'surface';
+export type AutonomyLevel = 'HOLD' | 'CONSENT' | 'VETO' | 'WEAPONS_FREE';
+
+export interface AutonomyState {
+  air: AutonomyLevel;
+  surface: AutonomyLevel;
+}
+
 export type Classification =
   | 'unknown'
   | 'neutral'

@@ -140,6 +140,31 @@ def _read_exit(out_dir):
         return int(f.read().strip())
 
 
+def _wait_for_queue(proc, out_dir, timeout=5):
+    """Wait until the foreground caller has installed handlers and entered queue.
+
+    The queue marker is written after signal installation and after the running
+    metadata is published. Failing fast on exit preserves useful diagnostics;
+    the bound prevents a startup failure from hanging the suite.
+    """
+    deadline = time.monotonic() + timeout
+    log_path = os.path.join(out_dir, "run.log")
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            raise AssertionError("caller exited before queue: {}".format(proc.returncode))
+        try:
+            with open(log_path, "r") as f:
+                log = f.read()
+            meta = _read_meta(out_dir)
+        except FileNotFoundError:
+            log, meta = "", None
+        if ("acquiring slot queue_timeout=" in log and meta is not None
+                and meta.get("status") == "running" and meta.get("pid") == proc.pid):
+            return
+        time.sleep(0.01)
+    raise AssertionError("caller did not enter queue within {}s".format(timeout))
+
+
 # --- Base test class ---
 
 class _Base(unittest.TestCase):
@@ -251,17 +276,24 @@ class TestQueueContention(_Base):
             _release_all(fds)
 
     def test_slot_contention_release(self):
-        """Hold slots, release after 0.15s -> exit 0, queue_seconds >= 0.1."""
+        """Hold slots after queue starts -> exit 0, queue_seconds >= 0.1."""
         fds = _hold_all_slots(self.lockdir)
-        release_timer = threading.Timer(0.15, _release_all, [fds])
-        release_timer.daemon = True
-        release_timer.start()
+        proc = None
         try:
             prompt = self._prompt()
             out = self._outdir()
-            r = _run_caller([prompt, out, "--url", self.server.url,
-                            "--lock-dir", self.lockdir, "--timeout", "5", "--queue-timeout", "3"])
-            self.assertEqual(r.returncode, 0)
+            cmd = [sys.executable, "-B", CALLER, prompt, out,
+                   "--url", self.server.url, "--lock-dir", self.lockdir,
+                   "--timeout", "5", "--queue-timeout", "3"]
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            _wait_for_queue(proc, out)
+            # Measure contention from the observed queue phase, rather than
+            # from before Python startup. Leave margin for scheduler jitter.
+            time.sleep(0.2)
+            _release_all(fds)
+            fds = []
+            stdout, stderr = proc.communicate(timeout=10)
+            self.assertEqual(proc.returncode, 0, (stdout, stderr))
             meta = _read_meta(out)
             self.assertGreaterEqual(meta["queue_seconds"], 0.1)
             self.assertGreaterEqual(meta["request_seconds"], 0)
@@ -273,8 +305,10 @@ class TestQueueContention(_Base):
             fcntl.flock(fd2, fcntl.LOCK_UN)
             os.close(fd2)
         finally:
-            release_timer.cancel()
             _release_all(fds)
+            if proc is not None and proc.poll() is None:
+                proc.kill()
+                proc.communicate(timeout=5)
 
 
 class TestTimeout(_Base):
@@ -296,6 +330,7 @@ class TestCancellation(_Base):
     def test_cancel_foreground_queue(self):
         """SIGTERM during queue -> exit 130, flocks released."""
         fds = _hold_all_slots(self.lockdir)
+        proc = None
         try:
             prompt = self._prompt()
             out = self._outdir()
@@ -303,9 +338,9 @@ class TestCancellation(_Base):
                    "--url", self.server.url, "--lock-dir", self.lockdir,
                    "--timeout", "10", "--queue-timeout", "10"]
             proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
-            time.sleep(0.1)
+            _wait_for_queue(proc, out)
             proc.send_signal(signal.SIGTERM)
-            proc.wait(timeout=5)
+            proc.communicate(timeout=5)
             self.assertEqual(proc.returncode, 130)
             meta = _read_meta(out)
             self.assertEqual(meta["exit_code"], 130)
@@ -317,6 +352,9 @@ class TestCancellation(_Base):
             _release_all(fds2)
         finally:
             _release_all(fds)
+            if proc is not None and proc.poll() is None:
+                proc.kill()
+                proc.communicate(timeout=5)
 
     def test_detach_wait_cancel(self):
         """--detach returns quickly, --wait pending 10, --cancel, --wait 130."""

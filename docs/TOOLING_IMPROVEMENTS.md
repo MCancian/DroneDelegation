@@ -157,3 +157,28 @@ Final local verification on the repaired inputs passed: 175 tooling tests,
 typecheck, 625 application tests across 40 files, and production build. The full
 run used 16 Jarvis POSTs and approximately 2,854 seconds of cumulative request
 time. Final CI and merge outcomes are retained in the external task record.
+
+## Milestone 5 implementation observations
+
+Started 2026-11-10 from `f2cd859`. Scope: issues #14, #15, #16.
+Implementation is delegated to native `gpt-6.1-terra` subagents in isolated
+staging copies with agreed interfaces and file ownership. The game's existing
+Jarvis runtime remains unchanged. Evidence:
+`/var/home/qyfs/.codex/task-evidence/drone-m5-20261110/`.
+
+| Area | Observation | Proposed improvement |
+| --- | --- | --- |
+| Codex | The required `development-evidence` skill is still missing, and its alternate `.agents/skills` symlink is dangling. Existing milestone records provide an equivalent compact evidence format. | Validate required skill owners at startup and offer explicit reuse of existing evidence records without reconstructing missing skills. |
+| Codex | Native command output has a separate byte guard; combining large source reads can truncate even with a generous token limit. | Show the effective byte budget and encourage bounded source reads; preserve the guard's capture path and terminal verdict. |
+| DroneDelegation | Milestone #16 suggests SAM fire at surface targets beyond 9 nm, while the authoritative command table defines SAMs for air and missiles. | Resolve rule and weapon-domain conflicts in the design owner before extending command capabilities; retain current command validation. |
+| DroneDelegation | `scripts/node22.sh` intentionally resets cwd to the live repository, so invoking it from an isolated staging copy would verify the wrong source tree. | Add an explicit staging-root option; meanwhile use the verified pinned Node/npm directory on PATH and retain the staging cwd in execution evidence. |
+| DroneDelegation | The unchanged tooling cancellation test sent SIGTERM after a fixed 100 ms; under parallel development load it exited `-15` before the caller installed its handlers. The isolated focused rerun passed without code changes. | Wait for the caller's published running metadata before signalling; retain the initial failed gate and require a fresh full gate rather than weakening the expected cancellation verdict. |
+| DroneDelegation | The M5 milestone description says delegation “stops S-7,” while §7.4 and #16 explicitly require engagement before launch. Seed 123's pre-launch gun burst can miss with the existing 0.35 hit probability. | Distinguish timely engagement from guaranteed neutralization in acceptance language; keep hit probability and target-proposal dedup unchanged unless balancing is separately authorized. |
+
+| DroneDelegation | A staged tactical implementation initially assumed the action-parser argument order incorrectly; typecheck caught it before application. | Include exact existing exported signatures in delegation contracts, alongside newly agreed interfaces; always typecheck complete staged files. |
+
+A second full run exposed the same fixture class in slot contention: its release
+timer started before the subprocess initialized, measuring only 0.05 s of actual
+queue time against the unchanged ≥0.1 s expectation. The autonomy Terra agent
+owns a focused fixture repair: synchronize cancellation and release with caller
+readiness using bounded waits, preserving production code and assertions.
