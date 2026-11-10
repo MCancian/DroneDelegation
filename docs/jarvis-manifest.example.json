@@ -1,0 +1,22 @@
+{
+  "task": "Write a focused Vitest spec demonstrating owned-contact retrieval and deterministic weapons config cloning. The test must import from tests/helpers/sim.ts and verify that worldContact returns the same object reference as the world's internal contact, and that deterministicWeaponsConfig(0) produces all-zero Pk fields while deterministicWeaponsConfig(1) produces all-one Pk fields.",
+  "allowed_files": [
+    "tests/example.spec.ts"
+  ],
+  "contract": "Tooling only. No src/server/design changes. The spec file must use Vitest (describe/it/expect), import makeWorld, makeContact, worldContact, deterministicWeaponsConfig from tests/helpers/sim.ts, and contain at least two test cases: one for owned-contact identity and one for deterministic config isolation. No gameplay logic changes.",
+  "dependencies": [
+    "tests/helpers/sim.ts",
+    "src/sim/world.ts",
+    "src/sim/types.ts",
+    "src/sim/clock.ts",
+    "src/sim/scenario/scenario.ts",
+    "src/sim/scenario/crew.ts",
+    "src/sim/scenario/weaponsConfig.ts"
+  ],
+  "design_sections": [
+    "## 1. Decisions (defaults chosen; change here first)",
+    "## 2. Architecture"
+  ],
+  "issue_body": "EDIT THIS BEFORE LAUNCH: Replace with the real issue body fetched via `gh issue view N --json body -q .body`. The builder only checks nonempty; it does not fetch from GitHub.",
+  "expected_hashes": null
+}
