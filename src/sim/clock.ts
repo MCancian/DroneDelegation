@@ -70,6 +70,16 @@ export class GameClock {
     };
   }
 
+  finish(): void {
+    if (this._ended) return;
+    this._ended = true;
+    this._accumulatorMs = 0;
+    const timeS = this.time;
+    for (const cb of this._endCallbacks) {
+      cb(timeS);
+    }
+  }
+
   advance(wallDeltaS: number): number {
     if (this._ended) return 0;
 
@@ -95,11 +105,7 @@ export class GameClock {
       }
 
       if (this._steps >= this._totalSteps) {
-        this._ended = true;
-        this._accumulatorMs = 0;
-        for (const cb of this._endCallbacks) {
-          cb(timeS);
-        }
+        this.finish();
         break;
       }
     }

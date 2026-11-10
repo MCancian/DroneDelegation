@@ -34,6 +34,9 @@ const clock = new GameClock({ timescale: config.timescale, durationS: STRAIT_TRA
 clock.onStep((dt) => {
   world.step(dt);
   runner.update();
+  if (world.weapons.shipLost) {
+    clock.finish();
+  }
 });
 
 let scenarioEndReported = false;
@@ -269,31 +272,11 @@ function dispatch(cmd: Command): void {
   }
 }
 
-// --- Clock/ship-lost end detection ---
+// --- Clock end detection ---
 let clockStopped = false;
-let shipLostDetected = false;
-let eventCursor = 0;
 
 function detectEnd(): void {
   if (clockStopped) return;
-
-  // Check ship loss via events
-  const events = world.events;
-  while (eventCursor < events.length) {
-    const ev = events[eventCursor];
-    eventCursor++;
-    if (ev.type === 'ship_lost') {
-      shipLostDetected = true;
-      clockStopped = true;
-      if (!scenarioEndReported) {
-        scenarioEndReported = true;
-        world.logEvent('scenario-end', 'crew-auto', { t: world.time });
-      }
-      return;
-    }
-  }
-
-  // Check clock ended
   if (clock.ended) {
     clockStopped = true;
   }

@@ -231,6 +231,10 @@ export class ScenarioRunner {
   }
 
   update(): void {
+    if (this.world.weapons.shipLost) {
+      stepCrew(this.world);
+      return;
+    }
     this.spawnContacts();
     this.processTriggers();
     stepCrew(this.world);
@@ -407,9 +411,11 @@ export function runScenario(
   const steps = Math.round((opts?.untilS ?? scenario.durationS) / STEP_S);
 
   for (let i = 0; i < steps; i++) {
+    if (world.weapons.shipLost) break;
     world.step(STEP_S);
     runner.update();
     opts?.onStep?.(world, runner);
+    if (world.weapons.shipLost) break;
   }
 
   return { world, runner };
