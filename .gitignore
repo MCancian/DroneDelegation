@@ -5,3 +5,6 @@ dist-server/
 coverage/
 *.log
 .env
+/.cache/
+__pycache__/
+*.py[cod]

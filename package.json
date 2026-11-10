@@ -12,6 +12,8 @@
     "start": "node dist-server/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",
     "test": "vitest run",
+    "tooling:test": "python3 -B -m unittest discover -s tests/tooling -p 'test_*.py' -v",
+    "verify": "npm run tooling:test && npm run typecheck && npm test && npm run build",
     "scenario:timeline": "tsx scripts/scenarioTimeline.ts"
   },
   "devDependencies": {

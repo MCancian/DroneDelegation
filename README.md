@@ -56,3 +56,13 @@ The spec (§8) defines command semantics but leaves several numeric parameters u
 - **Non-lethal response latency 5 s.** The spec says civilians "answer" hails/warnings and IFF reveals happen "after 5 s" for IFF specifically. A uniform 5 s delay was applied to all non-lethal command responses (hail, radio warning, illuminate, warning shots) for consistency. The spec does not mandate this uniformity.
 - **Warning shots consume 1 gun burst.** The spec (§8) says warning shots are "gun warning shots ahead of the contact" without specifying inventory cost. Consuming one burst from the gun inventory was chosen to prevent unlimited warning shots.
 - **A-9 radio range 28 nm.** The spec (§4.2) states A-9 "cannot hear military-distress warnings until ~28 nm." This is encoded as `radioRangeNm: 28` in the contact's `responses` field; radio warnings issued while the contact is beyond 28 nm are recorded as "ignored" in the event log.
+
+## Tooling
+
+Development tooling (Jarvis caller, packet builder, staged apply, Node 22 wrapper) is documented in [docs/TOOLING.md](docs/TOOLING.md).
+
+Run all verification gates locally:
+
+```bash
+bash scripts/node22.sh npm run verify
+```
