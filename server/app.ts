@@ -2,6 +2,14 @@ import { createServer as createHttpServer, type IncomingMessage, type ServerResp
 import { readFile, stat } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  resolveJarvisOptions,
+  streamUpstream,
+  probeHealth,
+  type JarvisOptions,
+  type ResolvedJarvisOptions,
+  type ChatRequest
+} from './jarvis.js';
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const defaultDistDir = resolve(currentDir, '..', 'dist');
@@ -30,14 +38,19 @@ const contentTypes: Record<string, string> = {
   '.webmanifest': 'application/manifest+json'
 };
 
+const MAX_BODY_BYTES = 256 * 1024;
+
 export interface CreateServerOptions {
   distDir?: string;
+  jarvis?: JarvisOptions;
 }
 
 export function createServer(options: CreateServerOptions = {}) {
   const distDir = resolve(options.distDir ?? defaultDistDir);
+  const jarvisOptions = resolveJarvisOptions(options.jarvis);
+
   return createHttpServer((req, res) => {
-    void handleRequest(req, res, distDir).catch(() => {
+    void handleRequest(req, res, distDir, jarvisOptions).catch(() => {
       if (!res.headersSent) {
         res.statusCode = 500;
         res.end();
@@ -49,7 +62,8 @@ export function createServer(options: CreateServerOptions = {}) {
 export async function handleRequest(
   req: IncomingMessage,
   res: ServerResponse,
-  distDir = defaultDistDir
+  distDir = defaultDistDir,
+  jarvisOptions?: ResolvedJarvisOptions
 ): Promise<void> {
   const method = req.method ?? 'GET';
   let pathname: string;
@@ -59,6 +73,30 @@ export async function handleRequest(
     pathname = decodeURIComponent(url.pathname);
   } catch {
     sendText(res, 400, 'Bad Request', method);
+    return;
+  }
+
+  // POST /api/chat
+  if (pathname === '/api/chat') {
+    if (method !== 'POST') {
+      res.statusCode = 405;
+      res.setHeader('Allow', 'POST');
+      res.end();
+      return;
+    }
+    await handleChat(req, res, jarvisOptions ?? resolveJarvisOptions());
+    return;
+  }
+
+  // GET /api/ai/health
+  if (pathname === '/api/ai/health') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      res.statusCode = 405;
+      res.setHeader('Allow', 'GET, HEAD');
+      res.end();
+      return;
+    }
+    await handleHealth(res, jarvisOptions ?? resolveJarvisOptions(), method);
     return;
   }
 
@@ -87,6 +125,217 @@ export async function handleRequest(
   }
 
   await serveStatic(res, distDir, pathname, method);
+}
+
+async function handleChat(
+  req: IncomingMessage,
+  res: ServerResponse,
+  options: ResolvedJarvisOptions
+): Promise<void> {
+  let body: unknown;
+
+  try {
+    const raw = await readBody(req, MAX_BODY_BYTES);
+    body = JSON.parse(raw);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Body too large') {
+      sendJson(res, 413, { error: 'Request body too large' });
+      return;
+    }
+    sendJson(res, 400, { error: 'Invalid JSON body' });
+    return;
+  }
+
+  const validation = validateChatBody(body);
+  if (!validation.valid) {
+    sendJson(res, 400, { error: validation.error });
+    return;
+  }
+
+  const chatRequest = validation.data;
+
+  // Set up abort controller for timeout + client disconnect
+  const abortController = new AbortController();
+  let streamComplete = false;
+  let timedOut = false;
+  let clientDisconnected = false;
+
+  const timeout = setTimeout(() => {
+    if (!streamComplete) {
+      timedOut = true;
+      abortController.abort();
+    }
+  }, options.timeoutMs);
+
+  const onDisconnect = () => {
+    if (!streamComplete) {
+      clientDisconnected = true;
+      abortController.abort();
+    }
+  };
+
+  req.on('aborted', onDisconnect);
+  res.on('close', onDisconnect);
+
+  // Send SSE headers
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  try {
+    for await (const event of streamUpstream(options, chatRequest, abortController.signal)) {
+      if (streamComplete) break;
+
+      if (event.type === 'delta') {
+        writeSSE(res, { delta: event.text });
+      } else if (event.type === 'error') {
+        writeSSE(res, { error: event.message });
+      } else if (event.type === 'done') {
+        writeSSE(res, { done: true });
+        streamComplete = true;
+        break;
+      }
+    }
+
+    if (!streamComplete) {
+      if (timedOut) {
+        writeSSE(res, { error: 'AI request timed out' });
+        writeSSE(res, { done: true });
+      }
+      // If clientDisconnected, do not write done (response is closed)
+      streamComplete = true;
+    }
+  } catch {
+    if (!streamComplete && !clientDisconnected) {
+      writeSSE(res, { error: 'Internal error' });
+      writeSSE(res, { done: true });
+      streamComplete = true;
+    }
+  } finally {
+    clearTimeout(timeout);
+    req.removeListener('aborted', onDisconnect);
+    res.removeListener('close', onDisconnect);
+    if (!res.writableEnded && !res.destroyed) {
+      res.end();
+    }
+  }
+}
+
+async function handleHealth(
+  res: ServerResponse,
+  options: ResolvedJarvisOptions,
+  method: string
+): Promise<void> {
+  const result = await probeHealth(options);
+  sendJson(res, 200, result, method);
+}
+
+function validateChatBody(
+  body: unknown
+): { valid: true; data: ChatRequest } | { valid: false; error: string } {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return { valid: false, error: 'Request body must be a JSON object' };
+  }
+
+  const obj = body as Record<string, unknown>;
+
+  if (!Array.isArray(obj.messages) || obj.messages.length === 0) {
+    return { valid: false, error: 'messages must be a non-empty array' };
+  }
+
+  const validRoles = new Set(['system', 'user', 'assistant']);
+
+  for (const msg of obj.messages) {
+    if (typeof msg !== 'object' || msg === null || Array.isArray(msg)) {
+      return { valid: false, error: 'Each message must be an object' };
+    }
+
+    const m = msg as Record<string, unknown>;
+
+    if (typeof m.role !== 'string' || !validRoles.has(m.role)) {
+      return { valid: false, error: 'Invalid role: must be system, user, or assistant' };
+    }
+
+    if (typeof m.content !== 'string' || m.content.length === 0) {
+      return { valid: false, error: 'content must be a non-empty string' };
+    }
+  }
+
+  if (obj.maxTokens !== undefined) {
+    if (
+      typeof obj.maxTokens !== 'number' ||
+      !Number.isInteger(obj.maxTokens) ||
+      obj.maxTokens < 1 ||
+      obj.maxTokens > 32768
+    ) {
+      return { valid: false, error: 'maxTokens must be an integer between 1 and 32768' };
+    }
+  }
+
+  if (obj.temperature !== undefined) {
+    if (
+      typeof obj.temperature !== 'number' ||
+      !Number.isFinite(obj.temperature) ||
+      obj.temperature < 0 ||
+      obj.temperature > 2
+    ) {
+      return { valid: false, error: 'temperature must be a finite number between 0 and 2' };
+    }
+  }
+
+  // Sanitize message fields explicitly
+  const sanitizedMessages = (obj.messages as Array<Record<string, unknown>>).map((m) => ({
+    role: m.role as 'system' | 'user' | 'assistant',
+    content: String(m.content).trim()
+  }));
+
+  const data: ChatRequest = {
+    messages: sanitizedMessages
+  };
+
+  if (obj.maxTokens !== undefined) {
+    data.maxTokens = obj.maxTokens as number;
+  }
+  if (obj.temperature !== undefined) {
+    data.temperature = obj.temperature as number;
+  }
+
+  return { valid: true, data };
+}
+
+function readBody(req: IncomingMessage, maxBytes: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let totalSize = 0;
+    let rejected = false;
+
+    req.on('data', (chunk: Buffer) => {
+      if (rejected) return;
+      totalSize += chunk.length;
+      if (totalSize > maxBytes) {
+        rejected = true;
+        reject(new Error('Body too large'));
+        req.resume();
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    req.on('end', () => {
+      if (!rejected) resolve(Buffer.concat(chunks).toString('utf-8'));
+    });
+
+    req.on('error', (err: unknown) => {
+      if (!rejected) reject(err);
+    });
+  });
+}
+
+function writeSSE(res: ServerResponse, data: unknown): void {
+  if (res.writableEnded || res.destroyed) return;
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
 async function serveStatic(
