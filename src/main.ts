@@ -6,6 +6,8 @@ import { createContactPanel } from './ui/contactPanel';
 import type { ContactPanel, ContactAction } from './ui/contactPanel';
 import { createCommandControls } from './ui/commandControls';
 import type { CommandControls } from './ui/commandControls';
+import { createCrewFeed } from './ui/crewFeed';
+import type { CrewFeed } from './ui/crewFeed';
 import { rangeTo } from './sim/geo';
 import { parseConfig, randomSeed } from './config';
 import { GameClock } from './sim/clock';
@@ -66,6 +68,19 @@ function markActiveRange(rangeNm: number): void {
 }
 
 let selectedId: string | null = null;
+
+const crewFeedRoot = document.getElementById('crew-feed');
+let crewFeed: CrewFeed | null = null;
+if (crewFeedRoot instanceof HTMLElement) {
+  crewFeed = createCrewFeed(crewFeedRoot, (contactId: string) => {
+    const tracks = world.visibleTracks();
+    const found = tracks.find((c) => c.id === contactId && c.alive);
+    if (found) {
+      selectedId = contactId;
+    }
+  });
+}
+
 let panel: ContactPanel | null = null;
 
 const panelRoot = document.getElementById('contact-panel');
@@ -379,6 +394,10 @@ if (canvas instanceof HTMLCanvasElement) {
 
     if (controls !== null) {
       controls.update();
+    }
+
+    if (crewFeed !== null) {
+      crewFeed.update(world.events);
     }
 
     requestAnimationFrame(frame);

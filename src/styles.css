@@ -92,10 +92,13 @@ body {
 
 #crew-feed {
   flex: 0 0 40%;
+  display: flex;
+  flex-direction: column;
   padding: 0.75rem;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
-  overflow: auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 #chat {
@@ -334,4 +337,102 @@ p {
 
 .contact-panel[data-classification="hostile"] .contact-header {
   color: #ff0000;
+}
+
+/* --- Crew Feed --- */
+
+.crew-feed-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.crew-msg {
+  font-size: 0.7rem;
+  line-height: 1.4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.crew-msg-routine {
+  color: #929292;
+}
+
+.crew-msg-priority {
+  color: #ffaa00;
+}
+
+.crew-msg-flash {
+  color: #ff3b30;
+}
+
+.crew-ts {
+  color: var(--muted);
+  font-size: 0.65rem;
+  white-space: nowrap;
+}
+
+.crew-station {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.crew-priority {
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.crew-msg-routine .crew-priority {
+  color: #929292;
+}
+
+.crew-msg-priority .crew-priority {
+  color: #ffaa00;
+}
+
+.crew-msg-flash .crew-priority {
+  color: #ff3b30;
+}
+
+.crew-track {
+  font-size: 0.65rem;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.crew-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.crew-select-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.crew-select-btn:hover {
+  opacity: 0.8;
+}
+
+.crew-select-btn:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }
