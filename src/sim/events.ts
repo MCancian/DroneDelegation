@@ -1,9 +1,6 @@
-import type { GameEvent, IffInfo } from './types';
+import type { AutonomyState, GameEvent, IffInfo } from './types';
 
-export interface AutonomySnapshot {
-  air: string;
-  surface: string;
-}
+export type AutonomySnapshot = AutonomyState;
 
 export function defaultAutonomySnapshot(): AutonomySnapshot {
   return { air: 'HOLD', surface: 'HOLD' };

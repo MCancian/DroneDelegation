@@ -662,3 +662,70 @@ p {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* Delegation controls: each domain keeps an explicit, labelled authority. */
+#autonomy {
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+}
+
+#autonomy fieldset,
+.autonomy-domain {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+#autonomy legend,
+.autonomy-domain-label {
+  font-size: 0.7rem;
+  color: var(--text);
+  margin-right: 0.3rem;
+}
+
+#autonomy button {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.35rem;
+  font: inherit;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+#autonomy button[aria-pressed="true"][data-level="HOLD"] {
+  color: #d0d5d0;
+  border-color: #888;
+  background: #262b26;
+}
+
+#autonomy button[aria-pressed="true"][data-level="CONSENT"] {
+  color: #8bd3ff;
+  border-color: #4499cc;
+  background: #102a38;
+}
+
+#autonomy button[aria-pressed="true"][data-level="VETO"] {
+  color: #ffd17f;
+  border-color: #d99a2b;
+  background: #382b10;
+}
+
+#autonomy button[aria-pressed="true"][data-level="WEAPONS_FREE"] {
+  color: #ffb5b5;
+  border-color: #ff5555;
+  background: #481414;
+}
+
+#autonomy button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+#autonomy button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

@@ -1,16 +1,35 @@
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { acquireSlot } from '../server/slots.ts';
+import { acquireSlot, type AcquireSlotOptions, type SlotHandle } from '../server/slots.ts';
 
 const flockResult = spawnSync('flock', ['--version'], { encoding: 'utf-8' });
 const flockAvailable = flockResult.status === 0;
 const tempDir = flockAvailable ? mkdtempSync(join(tmpdir(), 'jarvis-slots-')) : '';
 
 const skipIfNoFlock = flockAvailable ? it : it.skip;
+
+// Each test owns every successful acquisition, including unexpected success
+// and handles acquired before an assertion fails. If an acquisition resolves
+// after a timed-out test finishes, release it instead of leaking into the next.
+let fixture: { closed: boolean; handles: Set<SlotHandle> };
+beforeEach(() => { fixture = { closed: false, handles: new Set() }; });
+afterEach(() => {
+  fixture.closed = true;
+  for (const handle of fixture.handles) handle.release();
+  fixture.handles.clear();
+});
+
+async function acquireFixtureSlot(options: AcquireSlotOptions): Promise<SlotHandle> {
+  const owner = fixture;
+  const handle = await acquireSlot(options);
+  if (owner.closed) handle.release();
+  else owner.handles.add(handle);
+  return handle;
+}
 
 afterAll(() => {
   if (tempDir) {
@@ -20,7 +39,7 @@ afterAll(() => {
 
 describe('slot locking', () => {
   skipIfNoFlock('acquires a slot', async () => {
-    const handle = await acquireSlot({
+    const handle = await acquireFixtureSlot({
       lockDir: tempDir,
       queueTimeoutMs: 5000,
       pollIntervalMs: 50,
@@ -34,7 +53,7 @@ describe('slot locking', () => {
 
   skipIfNoFlock('busy slot falls through to next', async () => {
     // Acquire slot 0
-    const handle0 = await acquireSlot({
+    const handle0 = await acquireFixtureSlot({
       lockDir: tempDir,
       queueTimeoutMs: 5000,
       pollIntervalMs: 50,
@@ -42,7 +61,7 @@ describe('slot locking', () => {
     });
 
     // Acquire another - should get a different slot (slot 1)
-    const handle1 = await acquireSlot({
+    const handle1 = await acquireFixtureSlot({
       lockDir: tempDir,
       queueTimeoutMs: 5000,
       pollIntervalMs: 50,
@@ -62,7 +81,7 @@ describe('slot locking', () => {
 
     // Acquire all 4 slots
     for (let i = 0; i < 4; i++) {
-      const h = await acquireSlot({
+      const h = await acquireFixtureSlot({
         lockDir: tempDir,
         queueTimeoutMs: 5000,
         pollIntervalMs: 50,
@@ -72,14 +91,16 @@ describe('slot locking', () => {
     }
 
     // 5th acquisition should timeout
+    const start = Date.now();
     await expect(
-      acquireSlot({
+      acquireFixtureSlot({
         lockDir: tempDir,
         queueTimeoutMs: 200,
         pollIntervalMs: 50,
         slots: 4
       })
-    ).rejects.toThrow(/No slot available/);
+    ).rejects.toThrow(/^(?:No slot available within 200ms|Slot acquisition timed out waiting for lock confirmation)$/);
+    expect(Date.now() - start).toBeGreaterThanOrEqual(190);
 
     for (const h of handles) {
       h.release();
@@ -87,7 +108,7 @@ describe('slot locking', () => {
   });
 
   skipIfNoFlock('release allows reacquire', async () => {
-    const handle1 = await acquireSlot({
+    const handle1 = await acquireFixtureSlot({
       lockDir: tempDir,
       queueTimeoutMs: 5000,
       pollIntervalMs: 50,
@@ -97,7 +118,7 @@ describe('slot locking', () => {
     handle1.release();
 
     // Should be able to acquire again
-    const handle2 = await acquireSlot({
+    const handle2 = await acquireFixtureSlot({
       lockDir: tempDir,
       queueTimeoutMs: 5000,
       pollIntervalMs: 50,
@@ -109,7 +130,7 @@ describe('slot locking', () => {
   });
 
   skipIfNoFlock('release is idempotent', async () => {
-    const handle = await acquireSlot({
+    const handle = await acquireFixtureSlot({
       lockDir: tempDir,
       queueTimeoutMs: 5000,
       pollIntervalMs: 50,
@@ -125,7 +146,7 @@ describe('slot locking', () => {
     // Acquire all slots
     const handles: Array<{ release(): void }> = [];
     for (let i = 0; i < 4; i++) {
-      const h = await acquireSlot({
+      const h = await acquireFixtureSlot({
         lockDir: tempDir,
         queueTimeoutMs: 5000,
         pollIntervalMs: 50,
@@ -136,7 +157,7 @@ describe('slot locking', () => {
 
     const controller = new AbortController();
 
-    const promise = acquireSlot({
+    const promise = acquireFixtureSlot({
       lockDir: tempDir,
       queueTimeoutMs: 10000,
       pollIntervalMs: 50,
@@ -159,7 +180,7 @@ describe('slot locking', () => {
     controller.abort();
 
     await expect(
-      acquireSlot({
+      acquireFixtureSlot({
         lockDir: tempDir,
         queueTimeoutMs: 5000,
         pollIntervalMs: 50,
@@ -170,7 +191,7 @@ describe('slot locking', () => {
   });
 
   skipIfNoFlock('slots=0 bypasses locking', async () => {
-    const handle = await acquireSlot({
+    const handle = await acquireFixtureSlot({
       lockDir: tempDir,
       slots: 0
     });
@@ -181,7 +202,7 @@ describe('slot locking', () => {
   });
 
   skipIfNoFlock('never deletes lock files', async () => {
-    const handle = await acquireSlot({
+    const handle = await acquireFixtureSlot({
       lockDir: tempDir,
       queueTimeoutMs: 5000,
       pollIntervalMs: 50,

@@ -157,3 +157,64 @@ Final local verification on the repaired inputs passed: 175 tooling tests,
 typecheck, 625 application tests across 40 files, and production build. The full
 run used 16 Jarvis POSTs and approximately 2,854 seconds of cumulative request
 time. Final CI and merge outcomes are retained in the external task record.
+
+## Milestone 5 implementation observations
+
+Started 2026-11-10 from `f2cd859`. Scope: issues #14, #15, #16.
+Implementation is delegated to native `gpt-6.1-terra` subagents in isolated
+staging copies with agreed interfaces and file ownership. The game's existing
+Jarvis runtime remains unchanged. Evidence:
+`/var/home/qyfs/.codex/task-evidence/drone-m5-20261110/`.
+
+| Area | Observation | Proposed improvement |
+| --- | --- | --- |
+| Codex | The required `development-evidence` skill is still missing, and its alternate `.agents/skills` symlink is dangling. Existing milestone records provide an equivalent compact evidence format. | Validate required skill owners at startup and offer explicit reuse of existing evidence records without reconstructing missing skills. |
+| Codex | Native command output has a separate byte guard; combining large source reads can truncate even with a generous token limit. | Show the effective byte budget and encourage bounded source reads; preserve the guard's capture path and terminal verdict. |
+| DroneDelegation | Milestone #16 suggests SAM fire at surface targets beyond 9 nm, while the authoritative command table defines SAMs for air and missiles. | Resolve rule and weapon-domain conflicts in the design owner before extending command capabilities; retain current command validation. |
+| DroneDelegation | `scripts/node22.sh` intentionally resets cwd to the live repository, so invoking it from an isolated staging copy would verify the wrong source tree. | Add an explicit staging-root option; meanwhile use the verified pinned Node/npm directory on PATH and retain the staging cwd in execution evidence. |
+| DroneDelegation | The unchanged tooling cancellation test sent SIGTERM after a fixed 100 ms; under parallel development load it exited `-15` before the caller installed its handlers. The isolated focused rerun passed without code changes. | Wait for the caller's published running metadata before signalling; retain the initial failed gate and require a fresh full gate rather than weakening the expected cancellation verdict. |
+| DroneDelegation | The M5 milestone description says delegation “stops S-7,” while §7.4 and #16 explicitly require engagement before launch. Seed 123's pre-launch gun burst can miss with the existing 0.35 hit probability. | Distinguish timely engagement from guaranteed neutralization in acceptance language; keep hit probability and target-proposal dedup unchanged unless balancing is separately authorized. |
+
+| DroneDelegation | A staged tactical implementation initially assumed the action-parser argument order incorrectly; typecheck caught it before application. | Include exact existing exported signatures in delegation contracts, alongside newly agreed interfaces; always typecheck complete staged files. |
+
+A second full run exposed the same fixture class in slot contention: its release
+timer started before the subprocess initialized, measuring only 0.05 s of actual
+queue time against the unchanged ≥0.1 s expectation. The autonomy Terra agent
+owns a focused fixture repair: synchronize cancellation and release with caller
+readiness using bounded waits, preserving production code and assertions.
+
+Further integration review found that tactical range-entry triggers need both
+minimum and maximum weapon envelopes from the actual weapons configuration.
+Terra corrected the initial hardcoded upper-range check and added a custom-range
+boundary test before application. Browser proof assertions also wait for the
+next animation frame's observable state instead of assuming a click immediately
+redraws all controls.
+
+GitHub initially reported no checks for the newly opened autonomy PR; the active
+workflow registered a run about a minute later. The empty result was retained as
+unresolved rather than treated as success. Once a run ID existed, native
+`gh run watch --exit-status` followed it to its terminal verdict.
+
+The first autonomy CI run passed tooling and typecheck but exposed an existing
+slot-test expectation/cleanup defect. The 200 ms queue deadline can expire in
+`tryAcquire`'s confirmation timer, producing its explicit timeout error instead
+of `acquireSlot`'s “No slot available” error. The test accepted only the latter;
+its failed assertion skipped release of four fixture locks and caused four
+subsequent tests to time out. The repair accepts exactly those two existing
+deadline errors and releases every test-acquired handle after each test,
+including assertion failures. Production slot behavior stays unchanged.
+Original CI run: `42840882185`; failed log retained in the task record.
+
+Doctrine acceptance needs counterfactual evidence when a successful intercept
+removes the airliner before its civil report can occur. With seed 123, A-9 is
+engaged at T+709.0 at 39.9908 nm and destroyed at T+773.9; the same-seed HOLD
+trajectory reaches the commercial-emitter report at T+776.6. Tests check both
+the observed launch range (>32 nm) and that HOLD reference time rather than
+requiring a dead contact to emit a later report. The scenario fixture disables
+only inbound missile damage to isolate authority timing; target hit probabilities
+remain unchanged. This balancing nuance is retained without changing weapons.
+
+Group departure also needs an explicit observed-data fixture: physical size and
+scripted motion are intentionally excluded from sensor tracks. The implementation
+records its chosen proximity, movement and freshness thresholds, and tests stale
+group peers, answered hails, AIS traffic and access to hidden contact data.

@@ -16,7 +16,6 @@ import {
   deployChaff,
   setPointDefense,
 } from './weapons';
-import { defaultAutonomySnapshot } from './events';
 import type { CommandResponsePayload } from './events';
 
 // ---------------------------------------------------------------------------
@@ -363,7 +362,7 @@ export function executeCommand(world: World, cmd: Command, actor: CommandActor):
     command: structuredClone(cmd),
     ok: validation.ok,
     ...(validation.ok ? {} : { error: validation.error }),
-    autonomy: defaultAutonomySnapshot(),
+    autonomy: { ...world.autonomy },
   });
 
   if (!validation.ok) {
@@ -381,7 +380,14 @@ export function executeCommand(world: World, cmd: Command, actor: CommandActor):
     }
 
     case 'set_point_defense': {
+      const previous = world.weapons.pointDefense;
       setPointDefense(world, cmd.mode, actor);
+      if (previous !== cmd.mode) {
+        world.logEvent('autonomy_changed', actor, {
+          domain: 'pointDefense', previous, level: cmd.mode,
+          autonomy: { ...world.autonomy, pointDefense: cmd.mode },
+        });
+      }
       return { ok: true };
     }
 
