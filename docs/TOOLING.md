@@ -1,6 +1,52 @@
-# Jarvis Tooling
+# Development Tooling
 
-Machine-slot-locked caller, manifest-driven prompt snapshots, staged response validation and application, shared simulation test utilities, and project-local Node 22 verification matching CI.
+Native editing and diff review, optional external authoring helpers, shared
+simulation test utilities, and project-local Node 22 verification matching CI.
+
+## Default workflow
+
+Use native edits and artifacts, review the resulting diff, and run checks relevant
+to the change. The current user request selects the authoring model and scope.
+Agree interfaces and file ownership before authorized parallel work; a shared
+file needs one integration owner to review and combine owned differences.
+
+Evidence skills, external authoring helpers, and archives are optional. Prefer
+native logs and a brief existing task note when useful; no permanent archive is
+required. The generic `complete_files.py` fallback and this repository's Jarvis
+packet/caller transport retain their separate existing contracts when selected.
+The completed [#36](https://github.com/MCancian/DroneDelegation/issues/36)
+provides historical tooling-task context; its authorship and scope restrictions
+do not govern later tasks. Do not issue GitHub issue comments or control the
+model container without an explicit user override.
+
+## Task checks
+
+For repository work, select checks relevant to the requested change and current
+authorization; these practices do not require a global checklist or new records.
+
+- Before milestone work, resolve its canonical number and title. Distinguish a
+  query failure or milestone not found from a successful query returning no
+  issues. Check open issues, merged PRs, inclusion of their commits in the current
+  checkout, and acceptance evidence separately: none alone proves completion.
+  This is manual until the read-only preflight in
+  [#59](https://github.com/MCancian/DroneDelegation/issues/59) is implemented.
+- Source reviews use the supplied run date and identify the reviewed revision,
+  file, and symbol. Open the claimed references and check that they support the
+  finding before presenting them as evidence; line numbers alone can go stale.
+- For relevant asynchronous changes, check success, error, cancellation,
+  teardown, and unhandled rejections, including failures after a synchronous
+  cancellation call returns. Retain useful native results for diagnosing failures.
+- Temporal fixtures establish the chosen phase before triggering the event.
+  Derive expected values from independent public observations at event time,
+  rather than repeating implementation calculations or assuming spawn state is
+  still current. Retain a useful event trace before changing an assertion.
+- Browser proofs race success against visible error outcomes with bounded waits.
+  Inspect the relevant request, error details, and screenshot before teardown;
+  a timeout or one successful action does not establish the full interaction.
+  The maintained harness remains pending in
+  [#60](https://github.com/MCancian/DroneDelegation/issues/60).
+- Prefer native non-login commands (`login: false`) when the environment does
+  not require login setup. Collect terminal results before rerunning work.
 
 ## Prerequisites
 
@@ -29,6 +75,11 @@ The wrapper installs `node-linux-x64@22.14.0` and `npm@10.9.2` into `.cache/node
 | `npm run verify` | `tooling:test` → `typecheck` → `test` → `build` |
 
 ## Manifest schema
+
+This section and the packet lifecycle, metadata, and output protocol below apply
+only when using the optional Jarvis transport (`scripts/jarvis_packet.py` and
+`scripts/jarvis_call.py`). Its served-model, slot, snapshot, and strict-envelope
+requirements remain unchanged.
 
 A manifest is a JSON object with these fields:
 
@@ -95,7 +146,7 @@ python3 -B scripts/jarvis_call.py PACKET/prompt.md REQUEST_DIR \
 - `--detach` forks, returns PID immediately. Use `--wait` to poll.
 - `--apply` is an unsafe prototype; unsupported as a replacement for stage/apply.
 
-### Native detached waiting (REQUIRED)
+### Native detached waiting
 
 Launch with native exec so the session may yield a native session ID:
 
@@ -103,20 +154,13 @@ Launch with native exec so the session may yield a native session ID:
 python3 -B scripts/jarvis_call.py --wait REQUEST --max-wait 1200
 ```
 
-Retain PID, native session ID, and `run.log`. Do independent work while the request is in flight.
-
-When the request is the remaining dependency, use a 45 s native `write_stdin` wait in a dedicated `functions.exec` cell:
-
-```javascript
-// @exec: {"yield_time_ms": 50000}
-text(await tools.write_stdin({session_id: SESSION_ID, chars: "", yield_time_ms: 45000}));
-```
-
-If the cell yields, resume that cell with `functions.wait` — do not issue a second wait. The native exec session must reach actual terminal exit. CLI `--max-wait` returning 10 (pending) means just wait the same `REQUEST` again; never duplicate the POST. CLI default `--max-wait` is 45.
+Retain PID, native session ID, and `run.log`; use native waits and collect the
+terminal result before rerunning work. Resume the existing wait if it yields,
+rather than creating duplicate waiters. CLI `--max-wait` returning 10 (pending)
+means wait on the same `REQUEST` again; never duplicate the POST. CLI default
+`--max-wait` is 45. Do independent work while the request is in flight.
 
 Cancel guard: PID + start_ticks identity; SIGINT/TERM yields exit 130. SIGKILL leaves unresolved state; no automatic retry. No monitoring loop instead of native wait.
-
-Tool syntax examples above are agent orchestration documentation, not repo executables.
 
 ### Detached workflow
 
@@ -191,7 +235,8 @@ The model must output ONLY the following format. No prose, no fences, no comment
 - No fences, no prose outside delimiters.
 - All allowed files must be present.
 - Literal indented Markdown code example ellipsis (`...`) is valid and checked; actual omission markers in code files or unindented docs are rejected.
-- The parser cannot prove semantic completeness; review and full gates are required.
+- The parser cannot prove semantic completeness; review and the checks required
+  for the actual change remain necessary.
 
 ## Shared simulation test helpers
 
@@ -214,17 +259,19 @@ import {
 
 ## Repair flow
 
-1. Record native IDs and logs externally.
+1. Retain useful native IDs and logs; reuse an existing task note when needed.
 2. Compare fixture/spec/implementation; classify the defect before fixing.
 3. Assertion changes require independent evidence.
-4. Run a focused repair check, then the FINAL full `npm run verify` (tooling/typecheck/test/build) on final inputs via the wrapper.
+4. Run a focused repair check, then required implementation gates on final inputs:
+   full `npm run verify` (tooling/typecheck/test/build) via the wrapper for code
+   changes. Docs-only changes need relevant documentation, whitespace, and link
+   checks; do not claim application gates that were not run.
 5. Changed inputs invalidate earlier gates; no concurrent edits while gates run.
 6. CI green is mandatory before merge on the one-issue branch PR.
-7. Quote small mechanical hand edits in the PR body with request model roots and timings.
+7. When using Jarvis, retain its raw responses and hash/validation records and
+   describe mechanical repairs with request model roots and timings in the PR.
 
-Scope boundary: no `src/`, `server/`, scenario data, `DESIGN`, gameplay, M4, or feature issues #34/#35/#13/#17/#20. Never issue comments. No tools start the container.
-
-## Exit codes (CALLER)
+## Jarvis caller exit codes
 
 | Code | Meaning |
 |---|---|
@@ -240,7 +287,7 @@ Scope boundary: no `src/`, `server/`, scenario data, `DESIGN`, gameplay, M4, or 
 
 Additional: argparse usage errors exit 2; no-command exits 1; TS syntax checker exits 0/1; the wrapper propagates the invoked command's exit code.
 
-## Limits
+## Jarvis transport limits
 
 - Token estimates are heuristic (`ceil(bytes/4)`), not measured tokenizer usage.
 - Dependency completeness is manual; the tooling cannot guarantee semantic dependencies.
@@ -252,11 +299,9 @@ Additional: argparse usage errors exit 2; no-command exits 1; TS syntax checker 
 - Ordinary I/O rollback is not crash-atomic; a recovery path exists in `STAGE_DIR/backup/`.
 - Abrupt SIGKILL may leave unresolved state; no automatic retry.
 
-## Authorship
-
-Jarvis authors repository implementation and tooling. Codex orchestrates and quotes small mechanical repairs. One issue → one branch → one PR → CI green → merge. No issue comments.
-
 ## Verification
+
+For implementation changes, use the pinned runtime and full verification gate:
 
 ```bash
 bash scripts/node22.sh npm ci
