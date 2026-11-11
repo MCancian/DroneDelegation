@@ -1,6 +1,7 @@
 import './styles.css';
 import { createRadar } from './ui/radar';
 import { showBriefing } from './ui/briefing';
+import { createTextSizeControl } from './ui/textSize';
 import { missileThreats, formatMissileThreat } from './ui/alerts';
 import { RANGE_SCALES } from './ui/radarProjection';
 import { DEFAULT_RANGE_NM } from './ui/radarProjection';
@@ -36,6 +37,8 @@ import { streamDebrief } from './ai/debrief';
 
 let watchStarted = false;
 let resetFrameTime = false;
+const textSizeRoot = document.getElementById('topbar');
+const textSize = textSizeRoot instanceof HTMLElement ? createTextSizeControl(textSizeRoot) : null;
 showBriefing(() => { watchStarted = true; resetFrameTime = true; });
 
 const config = parseConfig(window.location.search, randomSeed(), import.meta.env.DEV);
@@ -381,6 +384,7 @@ function detectEnd(): void {
 if (canvas instanceof HTMLCanvasElement) {
   const radar = createRadar(canvas, {
     rangeNm: DEFAULT_RANGE_NM,
+    labelFontSize: () => textSize?.radarFontSize() ?? 14,
     onRangeChange: (nm) => {
       markActiveRange(nm);
     },

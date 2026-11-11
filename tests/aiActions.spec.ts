@@ -28,6 +28,35 @@ describe('parseActions', () => {
     expect(errors[0]).toContain('Malformed JSON');
   });
 
+  it('parses the reported pair of hail objects in one action block', () => {
+    const w = makeWorld([
+      makeContact({ id: 's5', trackId: 'S-05', domain: 'surface' }),
+      makeContact({ id: 's8', trackId: 'S-08', domain: 'surface' }),
+    ]);
+    stepWorld(w, 5);
+    const text = '```action\n'
+      + '{"action":"hail","target":"S-05","reason":"unknown no-AIS closing contact"}\n'
+      + '{"action":"hail","target":"S-08","reason":"unknown no-AIS closing contact"}\n```';
+    expect(parseActions(text, w)).toEqual({
+      commands: [{ action: 'hail', target: 's5' }, { action: 'hail', target: 's8' }],
+      errors: [],
+    });
+  });
+
+  it('still validates every object in a multi-object block', () => {
+    const w = worldWithTrack('A-01', 'a1');
+    const text = '```action\n{"action":"chaff"}\n{"action":"engage_sam","target":"missing"}\n```';
+    const { commands, errors } = parseActions(text, w);
+    expect(commands).toEqual([{ action: 'chaff' }]);
+    expect(errors).toEqual(["Target 'missing' not found among visible tracks"]);
+  });
+
+  it('rejects an entire malformed sequence without salvaging commands', () => {
+    const w = worldWithTrack('A-01', 'a1');
+    const text = '```action\n{"action":"chaff"}\n{bad json}\n```';
+    expect(parseActions(text, w)).toEqual({ commands: [], errors: ['Malformed JSON in action block'] });
+  });
+
   it('rejects unknown action', () => {
     const w = worldWithTrack('A-01', 'a1');
     const { commands, errors } = parseActions('```action\n{"action":"launch_nuke","target":"A-01"}\n```', w);

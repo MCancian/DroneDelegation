@@ -130,8 +130,7 @@ describe('inventory exhausted', () => {
 
 describe('gun busy', () => {
   it('second gun command rejected while burst active', () => {
-    const w = makeWorld([makeContact({ id: 's', domain: 'surface', size: 'small', position: { x: 0, y: 5 } })],
-      undefined, { ...WEAPONS_CONFIG, gun: { ...WEAPONS_CONFIG.gun, pkPerBurst: 0 } });
+    const w = makeWorld([makeContact({ id: 's', domain: 'surface', size: 'small', position: { x: 0, y: 5 } })]);
     expect(executeCommand(w, { action: 'engage_gun', target: 's' }, 'player').ok).toBe(true);
     expect(executeCommand(w, { action: 'engage_gun', target: 's' }, 'player').ok).toBe(false);
     expect(w.ownShip.inventory.gunBursts).toBe(39);

@@ -196,12 +196,12 @@ for (const seed of SEEDS) {
       expect(t.a9.turn!.rangeNm).toBeLessThanOrEqual(26);
     });
 
-    it('constraint 3: A-1 and A-9 profiles match', () => {
+    it('constraint 3: A-1 and A-9 have distinct profiles but a matching approach vector', () => {
       const t = tl();
       expect(t.a1.detected).not.toBeNull();
       expect(t.a9.detected).not.toBeNull();
-      expect(Math.abs(t.a1.detected!.altitudeFt - t.a9.detected!.altitudeFt)).toBeLessThanOrEqual(1000);
-      expect(Math.abs(t.a1.detected!.speedKts - t.a9.detected!.speedKts)).toBeLessThanOrEqual(30);
+      expect(t.a1.detected!.altitudeFt).toBeLessThan(t.a9.detected!.altitudeFt - 1000);
+      expect(t.a1.detected!.speedKts).toBeGreaterThan(t.a9.detected!.speedKts + 30);
       expect(Math.abs(angleDiff(t.a1.detected!.bearingDeg, t.a9.detected!.bearingDeg))).toBeLessThanOrEqual(15);
       expect(t.a1.detected!.rangeNm).toBeGreaterThanOrEqual(58);
       expect(t.a1.detected!.rangeNm).toBeLessThanOrEqual(61);
@@ -214,8 +214,8 @@ for (const seed of SEEDS) {
       expect(t.a1.launch).not.toBeNull();
       expect(t.a1.launch!.rangeNm).toBeGreaterThanOrEqual(29.5);
       expect(t.a1.launch!.rangeNm).toBeLessThan(30.0);
-      expect(t.a1.launch!.t).toBeGreaterThanOrEqual(280);
-      expect(t.a1.launch!.t).toBeLessThanOrEqual(320);
+      expect(t.a1.launch!.t).toBeGreaterThanOrEqual(220);
+      expect(t.a1.launch!.t).toBeLessThanOrEqual(230);
       expect(t.s7.launch).not.toBeNull();
       expect(t.missileLaunches.length).toBe(2);
       const launchers = t.missileLaunches.map((m) => m.launcherId).sort();

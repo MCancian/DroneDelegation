@@ -31,21 +31,21 @@ describe('ESM transition not lost by cooldown', () => {
     stepCrew(world);
     world.contactById('c')!.sensors.esm = { kind:'emitter', emitterType:'search radar' };
     ticks(world, 45);
-    expect(texts(world).filter(t=>t.includes('emitting search radar')).length).toBe(1);
+    expect(texts(world).filter(t=>t.includes('search radar emissions detected')).length).toBe(1);
     world.contactById('c')!.sensors.esm = { kind:'emitter', emitterType:'fire control radar' };
     ticks(world, 45);
-    expect(texts(world).filter(t=>t.includes('emitting fire control radar')).length).toBe(1);
+    expect(texts(world).filter(t=>t.includes('fire control radar emissions detected')).length).toBe(1);
     ticks(world, 100);
-    expect(texts(world).filter(t=>t.includes('emitting search radar')).length).toBe(1);
-    expect(texts(world).filter(t=>t.includes('emitting fire control radar')).length).toBe(1);
+    expect(texts(world).filter(t=>t.includes('search radar emissions detected')).length).toBe(1);
+    expect(texts(world).filter(t=>t.includes('fire control radar emissions detected')).length).toBe(1);
   });
 });
 
 describe('sensor value change within 0.1s emits new report', () => {
   const cases = [
-    { label:'AIS', set:(c:RadarContact,v:string)=>{c.sensors.ais={kind:'vessel',name:v,vesselType:'tanker'}}, first:'OLD', second:'NEW', e1:'AIS OLD', e2:'AIS NEW' },
-    { label:'visual', set:(c:RadarContact,v:string)=>{c.sensors.visual={kind:'identified',description:v}}, first:'first', second:'second', e1:'identified as first', e2:'identified as second' },
-    { label:'IFF', set:(c:RadarContact,v:string)=>{c.sensors.iff={kind:'mode3',code:v}}, first:'1111', second:'2222', e1:'Mode 3 1111', e2:'Mode 3 2222' },
+    { label:'AIS', set:(c:RadarContact,v:string)=>{c.sensors.ais={kind:'vessel',name:'hidden vessel name',vesselType:v}}, first:'tanker', second:'cargo vessel', e1:'vessel type as tanker', e2:'vessel type as cargo vessel' },
+    { label:'visual', set:(c:RadarContact,v:string)=>{c.sensors.visual={kind:'identified',description:v}}, first:'small craft', second:'patrol boat', e1:'visually identify a small craft', e2:'visually identify a patrol boat' },
+    { label:'IFF', set:(c:RadarContact,v:string)=>{c.sensors.iff={kind:'mode3',code:v}}, first:'1111', second:'2222', e1:'IFF response received', e2:'IFF response received' },
   ];
   for (const tc of cases) {
     it(`${tc.label}: ${tc.first} then ${tc.second}`, () => {
@@ -62,25 +62,19 @@ describe('sensor value change within 0.1s emits new report', () => {
   }
 });
 
-describe('speed transitions reported once within 8s', () => {
-  it('5->20->40 each once, no leak before sweep', () => {
+describe('routine track motion', () => {
+  it('5->20->40 changes do not generate feed messages', () => {
     const c = mk({ position:{x:0,y:6}, courseDeg:180, speedKts:5 });
     delete c.motion;
     const world = w([c]);
     stepCrew(world);
+    const initialCount = texts(world).length;
     world.contactById('c')!.speedKts = 20;
-    ticks(world, 30);
-    expect(texts(world).filter(t=>t.includes('speed change')).length).toBe(0);
-    ticks(world, 15);
-    expect(texts(world).filter(t=>t.includes('speed change')).length).toBe(1);
+    ticks(world, 45);
     world.contactById('c')!.speedKts = 40;
     ticks(world, 45);
-    const sr = texts(world).filter(t=>t.includes('speed change'));
-    expect(sr.length).toBe(2);
-    expect(sr[0]).toContain('5');
-    expect(sr[0]).toContain('20');
-    expect(sr[1]).toContain('20');
-    expect(sr[1]).toContain('40');
+    expect(texts(world)).toHaveLength(initialCount);
+    expect(texts(world).join(' ')).not.toMatch(/speed|closing|turning|CPA/);
   });
 });
 
@@ -93,12 +87,12 @@ describe('EW duplicate suppression does not block distinct change', () => {
     world.logEvent('crew-report','scenario',{station:'EW',priority:'priority',text:'EW: A-01 emitting commercial weather radar.',contactId:'c'});
     stepCrew(world);
     ticks(world, 45);
-    expect(texts(world).filter(t=>t.includes('emitting commercial weather radar')).length).toBe(1);
+    expect(texts(world).filter(t=>t.includes('commercial weather radar')).length).toBe(1);
     world.contactById('c')!.sensors.esm = { kind:'emitter', emitterType:'fire control radar' };
     ticks(world, 45);
-    expect(texts(world).filter(t=>t.includes('emitting fire control radar')).length).toBe(1);
+    expect(texts(world).filter(t=>t.includes('fire control radar emissions detected')).length).toBe(1);
     ticks(world, 100);
-    expect(texts(world).filter(t=>t.includes('emitting fire control radar')).length).toBe(1);
+    expect(texts(world).filter(t=>t.includes('fire control radar emissions detected')).length).toBe(1);
   });
 });
 
@@ -111,6 +105,6 @@ describe('IFF command response does not duplicate automatic sensor info', () => 
     stepCrew(world);
     executeCommand(world,{action:'iff_challenge',target:'c'},'player');
     ticks(world, 55);
-    expect(texts(world).filter(t=>t.includes('Mode 3 1111')).length).toBe(2); // Initial report + requested reply; no automatic duplicate.
+    expect(texts(world).filter(t=>t.includes('IFF response received')).length).toBe(1); // Requested reply, without duplicate sensor chatter.
   });
 });

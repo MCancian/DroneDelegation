@@ -33,7 +33,7 @@ describe('initial sensor values on first stepCrew', () => {
     const c = mk({ sensors:{iff:{kind:'none'},ais:{kind:'vessel',name:'MT X',vesselType:'tanker'},esm:{kind:'none'},visual:{kind:'none'}} });
     const world = w([c]);
     stepCrew(world);
-    expect(texts(world).some(t=>t.includes('AIS MT X'))).toBe(true);
+    expect(texts(world).some(t=>t.includes('AIS reports the vessel type as tanker'))).toBe(true);
     const cls = cmds(world).find(e=>(e.payload as any).command?.action==='classify');
     expect(cls).toBeDefined();
     expect(cls!.actor).toBe('crew-auto');
@@ -45,7 +45,7 @@ describe('initial sensor values on first stepCrew', () => {
       sensors:{iff:{kind:'mode4'},ais:{kind:'none'},esm:{kind:'none'},visual:{kind:'none'}} });
     const world = w([c]);
     stepCrew(world);
-    expect(texts(world).some(t=>t.includes('Mode 4'))).toBe(true);
+    expect(texts(world).some(t=>t.includes('IFF identifies a friendly aircraft'))).toBe(true);
     const cls = cmds(world).find(e=>(e.payload as any).command?.action==='classify');
     expect(cls!.actor).toBe('crew-auto');
     expect((cls!.payload as any).command.classification).toBe('friendly');
@@ -54,13 +54,13 @@ describe('initial sensor values on first stepCrew', () => {
     const c = mk({ sensors:{iff:{kind:'none'},ais:{kind:'none'},esm:{kind:'none'},visual:{kind:'identified',description:'small craft'}} });
     const world = w([c]);
     stepCrew(world);
-    expect(texts(world).some(t=>t.includes('identified as small craft'))).toBe(true);
+    expect(texts(world).some(t=>t.includes('visually identify a small craft'))).toBe(true);
   });
   it('initial ESM emits EW', () => {
     const c = mk({ sensors:{iff:{kind:'none'},ais:{kind:'none'},esm:{kind:'emitter',emitterType:'search radar'},visual:{kind:'none'}} });
     const world = w([c]);
     stepCrew(world);
-    expect(texts(world).some(t=>t.includes('emitting search radar'))).toBe(true);
+    expect(texts(world).some(t=>t.includes('search radar emissions detected'))).toBe(true);
   });
   it('player hostile on AIS contact stays hostile', () => {
     const c = mk({ sensors:{iff:{kind:'none'},ais:{kind:'vessel',name:'MT X',vesselType:'tanker'},esm:{kind:'none'},visual:{kind:'none'}} });

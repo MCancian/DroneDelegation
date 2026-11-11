@@ -2,6 +2,7 @@ import type { Vec2 } from '../types';
 import { fromBearingRange, move } from '../geo';
 import { GAME_DURATION_S } from '../clock';
 import type { Scenario } from './scenario';
+import { DEFAULT_SENSOR_CONFIG } from '../sensors';
 import { WEAPONS_CONFIG } from './weaponsConfig';
 
 export const STRAIT_IDS = {
@@ -47,11 +48,17 @@ export const STRAIT_TRANSIT: Scenario = {
   id: 'strait-transit',
   name: 'Strait Transit',
   durationS: GAME_DURATION_S,
-  // Strait-specific balance: a decisive gun response to the fast craft and
-  // stronger close-in defense. Both outcomes remain probabilistic.
+  // Missile tracks appear close to impact, leaving a short manual reaction
+  // window. Prompt AUTO activation can still engage CIWS and deploy chaff.
+  sensorConfig: {
+    ...DEFAULT_SENSOR_CONFIG,
+    maxRangeNm: { ...DEFAULT_SENSOR_CONFIG.maxRangeNm, missile: 1 },
+  },
+  // The Strait's multiple missiles threaten the hull without causing an
+  // immediate sink; each impact is still visible and consequential.
   weaponsConfig: {
     ...WEAPONS_CONFIG,
-    gun: { ...WEAPONS_CONFIG.gun, pkPerBurst: 0.9 },
+    ascm: { ...WEAPONS_CONFIG.ascm, damagePct: 20 },
     ciws: { ...WEAPONS_CONFIG.ciws, pkPerMissile: 0.85 },
   },
   ownShip: {
@@ -70,10 +77,10 @@ export const STRAIT_TRANSIT: Scenario = {
       domain: 'air',
       truth: 'hostile',
       placement: { kind: 'fromOwnship', bearingDeg: 45, rangeNm: 60 },
-      speedKts: 420,
-      altitudeFt: 15000,
+      speedKts: 600,
+      altitudeFt: 300,
       spawnAtS: 45,
-      behavior: { kind: 'closeOnOwnship', speedKts: 420, mode: 'pure' },
+      behavior: { kind: 'closeOnOwnship', speedKts: 600, mode: 'pure' },
       responses: { radio: 'ignore', illuminate: 'ignore' },
     },
     {
@@ -320,7 +327,7 @@ export const STRAIT_TRANSIT: Scenario = {
       id: 'a1-turn-away',
       when: { kind: 'hostileAct', byContactId: 'a1' },
       actions: [
-        { kind: 'setBehavior', contactId: 'a1', behavior: { kind: 'turnAway', courseDeg: 45, speedKts: 420 } },
+        { kind: 'setBehavior', contactId: 'a1', behavior: { kind: 'turnAway', courseDeg: 45, speedKts: 600 } },
       ],
     },
     {
@@ -332,7 +339,7 @@ export const STRAIT_TRANSIT: Scenario = {
           kind: 'crewReport',
           station: 'Lookouts',
           priority: 'routine',
-          text: 'Lookouts: no visual on S-07 in haze, est. visual at 3 nm.',
+          text: 'Sir, I cannot identify this surface contact through the haze.',
           contactId: 's7',
         },
       ],
@@ -364,7 +371,7 @@ export const STRAIT_TRANSIT: Scenario = {
           kind: 'crewReport',
           station: 'TAO-Air',
           priority: 'priority',
-          text: 'TAO-Air: A-09 squawking Mode 3 4217, could not correlate with flight plan.',
+          text: 'Sir, this aircraft is replying, but I cannot correlate it with a flight plan. I cannot establish its identity.',
           contactId: 'a9',
         },
       ],
@@ -382,7 +389,7 @@ export const STRAIT_TRANSIT: Scenario = {
           kind: 'crewReport',
           station: 'EW',
           priority: 'priority',
-          text: 'EW: A-09 emitting commercial weather radar (civil airliner type).',
+          text: 'Sir, commercial weather radar suggests this is a civilian aircraft.',
           contactId: 'a9',
         },
       ],
@@ -395,7 +402,7 @@ export const STRAIT_TRANSIT: Scenario = {
           kind: 'crewReport',
           station: 'Radio',
           priority: 'priority',
-          text: 'Radio: civil-frequency call from A-09, Red Air flight 417, airliner, delayed departure, joining the airway.',
+          text: 'Sir, a civil-frequency call identifies this aircraft as an airliner joining the airway.',
           contactId: 'a9',
         },
       ],

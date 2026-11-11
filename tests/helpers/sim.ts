@@ -27,7 +27,6 @@ export function deterministicWeaponsConfig(pk: 0 | 1): WeaponsConfig {
   const cfg = structuredClone(WEAPONS_CONFIG);
   cfg.sam.pkSalvoVsAircraft = pk;
   cfg.sam.pkPerMissileVsAscm = pk;
-  cfg.gun.pkPerBurst = pk;
   cfg.ciws.pkPerMissile = pk;
   cfg.ascm.pHit = pk;
   cfg.ascm.pHitChaff = pk;

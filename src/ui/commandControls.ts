@@ -130,7 +130,7 @@ export function createCommandControls(
   statusEl.setAttribute('role', 'status');
   statusEl.setAttribute('aria-live', 'polite');
   statusEl.style.color = '#ff8800';
-  statusEl.style.fontSize = '0.7rem';
+  statusEl.style.fontSize = 'var(--text-secondary-size)';
   statusEl.style.minWidth = '6rem';
   container.appendChild(statusEl);
 

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { STRAIT_TRANSIT, STRAIT_IDS, STRAIT_TRIGGERS } from '../src/sim/scenario/strait';
 import { runScenario } from '../src/sim/scenario/scenario';
 import type { World } from '../src/sim/world';
+import { angleDiff, bearingTo } from '../src/sim/geo';
+import { executeCommand } from '../src/sim/commands';
 
 const SEED = 1;
 
@@ -17,17 +19,36 @@ describe('S7 sprint crew reports', () => {
   const { world } = runScenario(STRAIT_TRANSIT, SEED, { untilS: 490 });
   const msgs = crewMsgs(world);
 
-  it('SWC priority speed-40 report for S-7 at t>=480 <=490', () => {
-    const swc = msgs.filter(r => r.station === 'SWC' && r.priority === 'priority'
-      && r.contactId === STRAIT_IDS.s7 && r.text.includes('speed change') && r.text.includes('40'));
-    expect(swc.length).toBeGreaterThanOrEqual(1);
-    expect(swc[0].t).toBeGreaterThanOrEqual(480);
-    expect(swc[0].t).toBeLessThanOrEqual(490);
+  it('does not narrate routine speed, course, or CPA changes for an existing track', () => {
+    const reports = msgs.filter(r => r.contactId === STRAIT_IDS.s7);
+    expect(world.contactById(STRAIT_IDS.s7)!.speedKts).toBe(40);
+    expect(reports.some(r => /speed change|turning toward|closing, CPA/.test(r.text))).toBe(false);
   });
 
-  it('Lookouts no visual 3nm scripted report', () => {
-    const lk = msgs.filter(r => r.station === 'Lookouts' && r.text.includes('no visual') && r.text.includes('3 nm'));
+  it('reports the lookout uncertainty as a brief assessment', () => {
+    const lk = msgs.filter(r => r.station === 'Lookouts' && r.contactId === STRAIT_IDS.s7 && r.text.includes('cannot identify'));
     expect(lk.length).toBeGreaterThanOrEqual(1);
+    expect(lk[0].t).toBeGreaterThanOrEqual(480);
+    expect(lk[0].text).toContain('haze');
+  });
+
+  it('does not deny an observed visual identification when the sprint trigger fires', () => {
+    let maneuvered = false;
+    const { world: approached, runner } = runScenario(STRAIT_TRANSIT, SEED, {
+      untilS: 481,
+      onStep: world => {
+        if (maneuvered) return;
+        expect(executeCommand(world, { action: 'maneuver', courseDeg: 70, speedKts: 35 }, 'player')).toEqual({ ok: true });
+        maneuvered = true;
+      },
+    });
+    const lookouts = crewMsgs(approached).filter(report => report.station === 'Lookouts' && report.contactId === STRAIT_IDS.s7);
+    const identified = lookouts.find(report => report.text.includes('visually identify'));
+    expect(identified).toBeDefined();
+    expect(identified!.t).toBeLessThan(480);
+    expect(approached.trackFor(STRAIT_IDS.s7)?.visual.kind).toBe('identified');
+    expect(runner.firedTriggers).toContain(STRAIT_TRIGGERS.s7Sprint);
+    expect(lookouts.filter(report => report.t >= 480 && /cannot identify|no visual/i.test(report.text))).toEqual([]);
   });
 
   it('no SWC speed-40 report before 480', () => {
@@ -42,19 +63,23 @@ describe('A1 missile launch FLASH', () => {
   const launch = world.events.find(e => e.type === 'missile-launch' && (e.payload as any).launcherId === STRAIT_IDS.a1);
   const flash = crewMsgs(world).filter(r => r.priority === 'flash' && r.text.includes('VAMPIRE'));
 
-  it('FLASH within one sweep period + 0.2 after launch', () => {
+  it('issues FLASH when the missile becomes sensor-visible rather than revealing the hidden launch', () => {
     expect(launch).toBeDefined();
     expect(flash.length).toBeGreaterThanOrEqual(1);
-    const delay = flash[0].t - launch!.t;
+    const firstDetectedAt = world.trackFor('ascm-1')!.firstDetectedAt;
+    expect(firstDetectedAt).toBeGreaterThan(launch!.t);
+    const delay = flash[0].t - firstDetectedAt;
     expect(delay).toBeGreaterThanOrEqual(0);
     expect(delay).toBeLessThanOrEqual(world.sensorConfig.sweepPeriodS + 0.2);
   });
 
-  it('bearing 045/046 rounding ±1, count two', () => {
+  it('reports the observed bearing at detection and counts two missiles', () => {
     const m = flash[0].text.match(/bearing (\d{3})/);
     expect(m).not.toBeNull();
-    expect(parseInt(m![1])).toBeGreaterThanOrEqual(44);
-    expect(parseInt(m![1])).toBeLessThanOrEqual(47);
+    const { world: atFlash } = runScenario(STRAIT_TRANSIT, SEED, { untilS: flash[0].t });
+    const missile = atFlash.visibleTracks().find(track => track.domain === 'missile' && !track.ownMissile)!;
+    const observedBearing = bearingTo(atFlash.ownShip.position, missile.position);
+    expect(Math.abs(angleDiff(parseInt(m![1]), observedBearing))).toBeLessThanOrEqual(1);
     expect(flash[0].text).toMatch(/two|2/);
   });
 });
@@ -64,8 +89,8 @@ describe('A9 crew reports no truth leak', () => {
   const msgs = crewMsgs(world);
   const a9 = msgs.filter(r => r.contactId === STRAIT_IDS.a9 || r.text.includes('A-09'));
 
-  it('Mode3 uncorrelated scripted at t=560', () => {
-    const iff = a9.filter(r => r.text.includes('Mode 3') && r.text.includes('could not correlate'));
+  it('reports uncertain identification without flight-plan correlation at t=560', () => {
+    const iff = a9.filter(r => r.text.includes('cannot correlate') && r.text.includes('flight plan'));
     expect(iff.length).toBeGreaterThanOrEqual(1);
     expect(iff[0].t).toBeGreaterThanOrEqual(560);
     expect(iff[0].t).toBeLessThanOrEqual(560.15);
@@ -76,9 +101,19 @@ describe('A9 crew reports no truth leak', () => {
     expect(ew.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('Radio flight 417 report present', () => {
-    const rad = a9.filter(r => r.station === 'Radio' && r.text.includes('417'));
+  it('reports the civil-frequency airliner identification', () => {
+    const rad = a9.filter(r => r.station === 'Radio' && r.text.includes('civil-frequency') && r.text.includes('airliner'));
     expect(rad.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('uses narrative assessments without structured contact readouts', () => {
+    for (const report of msgs) {
+      expect(report.text).not.toMatch(/\b[ASM]-\d{2}\b|\brange \d|\bspeed \d|\balt \d|\bCPA\b/);
+    }
+    const scripted = world.events.filter(event => event.type === 'crew-report' &&
+      (event.payload as { triggerId?: string }).triggerId?.startsWith('a9-'));
+    expect(scripted).toHaveLength(3);
+    for (const event of scripted) expect(event.payload).toMatchObject({ domain: 'air', contactId: 'a9' });
   });
 
   it('no civil/airliner/commercial before EW trigger time', () => {

@@ -146,6 +146,7 @@ describe('Pk statistics', () => {
     let kills = 0;
     for (let seed = 1; seed <= N; seed++) {
       const world = makeWorld([], { seed });
+      setPointDefense(world, 'auto', 'player');
       launchAscms(world, ascmReq({ x: 0, y: 3 }));
       stepUntil(world, () => !world.contactById('ascm-1')?.alive, 30);
       const ciwsResults = world.events.filter(
@@ -157,23 +158,6 @@ describe('Pk statistics', () => {
     }
     const rate = kills / N;
     expect(Math.abs(rate - 0.6)).toBeLessThan(0.04);
-  });
-
-  it('Gun kill rate ≈ 0.35', () => {
-    const N = 1000;
-    let kills = 0;
-    for (let seed = 1; seed <= N; seed++) {
-      const world = makeWorld(
-        [makeContact({ domain: 'surface', position: { x: 0, y: 5 }, speedKts: 0 })],
-        { seed },
-      );
-      const result = fireGun(world, 'tgt', 'player');
-      expect(result.ok).toBe(true);
-      stepFor(world, 10.1);
-      if (events(world, 'contact_destroyed').length > 0) kills++;
-    }
-    const rate = kills / N;
-    expect(Math.abs(rate - 0.35)).toBeLessThan(0.04);
   });
 
   it('ASCM hit rate without chaff ≈ 0.8, with chaff ≈ 0.45', () => {
@@ -297,6 +281,7 @@ describe('Point defense AUTO', () => {
   it('Auto chaff deploys when missile is within chaff duration', () => {
     // ASCM at (0,5): time to impact ≈ 29.4s ≤ 60s chaff duration
     const world = makeWorld([], { seed: 1 });
+    setPointDefense(world, 'auto', 'player');
     launchAscms(world, ascmReq({ x: 0, y: 5 }));
     stepFor(world, 4.1);
     const chaffEvents = events(world, 'chaff_deployed');
@@ -308,6 +293,7 @@ describe('Point defense AUTO', () => {
   it('Auto chaff does not deploy when missile is far away, deploys when close enough', () => {
     // ASCM at (0,20): time to impact ≈ 120s > 60s initially
     const world = makeWorld([], { seed: 1 });
+    setPointDefense(world, 'auto', 'player');
     launchAscms(world, ascmReq({ x: 0, y: 20 }));
     stepFor(world, 50);
     expect(events(world, 'chaff_deployed').length).toBe(0);

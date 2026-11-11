@@ -11,7 +11,6 @@ export interface WeaponsConfig {
   gun: {
     maxRangeNm: number;
     burstS: number;
-    pkPerBurst: number;
   };
   ciws: {
     maxRangeNm: number;
@@ -43,7 +42,6 @@ export const WEAPONS_CONFIG: WeaponsConfig = {
   gun: {
     maxRangeNm: 9,
     burstS: 10,
-    pkPerBurst: 0.35,
   },
   ciws: {
     maxRangeNm: 1.5,

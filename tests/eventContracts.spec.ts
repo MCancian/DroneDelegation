@@ -64,7 +64,7 @@ describe('event contracts and decision attribution', () => {
     expect(destruction?.actor).toBe('doctrine');
     expect(result!.t).toBeGreaterThan(fired!.t);
     expect(destruction?.payload).toMatchObject({ truth: 'civil', casualties: 212 });
-    const narration = world.events.filter(event => isEventOfType(event, 'crew-report') && event.payload.text.includes('Splash'));
+    const narration = world.events.filter(event => isEventOfType(event, 'crew-report') && event.payload.text.includes('target destroyed'));
     expect(narration).toHaveLength(1);
     expect(narration[0].actor).toBe('crew-auto');
 

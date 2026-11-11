@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { SYSTEM_PROMPT } from '../src/ai/systemPrompt';
 
 describe('SYSTEM_PROMPT', () => {
-  it('contains ROE-3 verbatim text', () => {
-    expect(SYSTEM_PROMPT).toContain('Any air contact approaching from Red territory whose altitude and speed match');
+  it('matches ROE-3 by approach vector only', () => {
+    expect(SYSTEM_PROMPT).toContain('Any air contact approaching from Red territory on approximately the same initial bearing');
+    expect(SYSTEM_PROMPT).toContain('Judge the match by the approach vector only; do not use altitude or speed');
     expect(SYSTEM_PROMPT).toContain('engaged before it reaches 30 nm');
-    expect(SYSTEM_PROMPT).toContain('Hesitation against a known attack profile costs the ship');
+    expect(SYSTEM_PROMPT).toContain('Hesitation against a known attack vector costs the ship');
   });
 
   it('contains ROE-5 verbatim text', () => {

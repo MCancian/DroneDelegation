@@ -26,14 +26,19 @@ function crewR(world: World) { return world.events.filter(e=>e.type==='crew-repo
 function texts(world: World): string[] { return crewR(world).map(e=>(e.payload as any).text); }
 
 describe('crew initial contact', () => {
-  it('routine report has bearing/range/speed', () => {
+  it('uses a narrative bearing report without a track card or numeric readouts', () => {
     const world = w([mk({ courseDeg: 90 })]);
     stepCrew(world);
     const t = texts(world);
     expect(t.length).toBe(1);
+    expect(t[0]).toContain('Sir, new surface contact');
     expect(t[0]).toContain('bearing 000');
-    expect(t[0]).toContain('range 6.0');
-    expect(t[0]).toContain('speed 5');
+    expect(t[0]).toContain('do not know what to make of it');
+    expect(t[0]).not.toContain('S-07');
+    expect(t[0]).not.toContain('range');
+    expect(t[0]).not.toContain('speed');
+    expect(t[0]).not.toContain('6.0');
+    expect((crewR(world)[0].payload as any).role).toBe('surface-search');
     expect((crewR(world)[0].payload as any).priority).toBe('routine');
   });
   it('no repeat on 100 unchanged calls', () => {
@@ -44,50 +49,15 @@ describe('crew initial contact', () => {
   });
 });
 
-describe('crew speed jump', () => {
-  it('5->40 reported once after sweep, not before', () => {
+describe('crew track movement', () => {
+  it('does not report later speed or course changes', () => {
     const world = w([mk()]);
     stepCrew(world);
     world.contactById('c')!.speedKts = 40;
-    ticks(world, 30); // 3s, before sweep at 4s
-    expect(texts(world).filter(t=>t.includes('speed change')).length).toBe(0);
-    ticks(world, 15); // past 4s sweep
-    const speedReports = texts(world).filter(t=>t.includes('speed change'));
-    expect(speedReports.length).toBe(1);
-    expect(speedReports[0]).toContain('SWC');
-    expect((crewR(world).find(e=>(e.payload as any).text.includes('speed change'))!.payload as any).priority).toBe('priority');
-    ticks(world, 50);
-    expect(texts(world).filter(t=>t.includes('speed change')).length).toBe(1);
-  });
-});
-
-describe('crew turn toward', () => {
-  it('course 90->180 detected after sweep', () => {
-    const c = mk({ courseDeg:90 });
-    delete c.motion;
-    const world = w([c]);
-    stepCrew(world);
-    world.contactById('c')!.courseDeg = 180;
-    ticks(world, 45); // past 4s sweep
-    const turnReports = texts(world).filter(t=>t.includes('turning toward'));
-    expect(turnReports.length).toBe(1);
-    expect(turnReports[0]).toContain('SWC');
-  });
-});
-
-describe('crew closing CPA and visual ETA', () => {
-  it('CPA 0 and ETA 270s to 3nm', () => {
-    const c = mk({ speedKts:40 });
-    delete c.motion;
-    const world = w([c]);
-    stepCrew(world);
-    ticks(world, 45);
-    const cpaReports = texts(world).filter(t=>t.includes('closing'));
-    expect(cpaReports.length).toBe(1);
-    expect(cpaReports[0]).toContain('CPA 0.0');
-    const visReports = texts(world).filter(t=>t.includes('est. visual'));
-    expect(visReports.length).toBe(1);
-    expect(visReports[0]).toContain('4:30'); // 270s = 4:30
+    world.contactById('c')!.courseDeg = 270;
+    ticks(world, 100);
+    expect(texts(world)).toHaveLength(1);
+    expect(texts(world).join(' ')).not.toMatch(/closing|CPA|turning|speed change|course|visual at/);
   });
 });
 
@@ -102,11 +72,11 @@ describe('crew sensor info once', () => {
     contact.sensors.visual = { kind:'identified', description:'small craft' };
     ticks(world, 45);
     const t = texts(world);
-    expect(t.filter(x=>x.includes('AIS TEST')).length).toBe(1);
-    expect(t.filter(x=>x.includes('emitting search radar')).length).toBe(1);
-    expect(t.filter(x=>x.includes('identified as small craft')).length).toBe(1);
+    expect(t.filter(x=>x.includes('vessel type as fishing')).length).toBe(1);
+    expect(t.filter(x=>x.includes('search radar emissions detected')).length).toBe(1);
+    expect(t.filter(x=>x.includes('visually identify a small craft')).length).toBe(1);
     ticks(world, 50);
-    expect(t.filter(x=>x.includes('AIS TEST')).length).toBe(1);
+    expect(texts(world).filter(x=>x.includes('vessel type as fishing')).length).toBe(1);
   });
 });
 
@@ -118,11 +88,11 @@ describe('crew IFF response', () => {
     stepCrew(world);
     executeCommand(world, {action:'iff_challenge', target:'c'}, 'player');
     ticks(world, 45); // 4.5s, before 5s response
-    expect(texts(world).filter(t=>t.includes('Mode 3')).length).toBe(0);
+    expect(texts(world).filter(t=>t.includes('IFF response received')).length).toBe(0);
     ticks(world, 10); // past 5s
-    const iffReports = texts(world).filter(t=>t.includes('Mode 3'));
+    const iffReports = texts(world).filter(t=>t.includes('IFF response received'));
     expect(iffReports.length).toBe(1);
-    expect(iffReports[0]).toContain('TAO-Air');
+    expect(iffReports[0]).toContain('identity remains unconfirmed');
   });
 });
 
@@ -172,9 +142,9 @@ describe('crew weapon results', () => {
     world.logEvent('weapon_result','player',{weapon:'sam',targetId:'y',killed:false});
     stepCrew(world);
     const t = texts(world);
-    expect(t.some(x=>x.includes('Birds away'))).toBe(true);
-    expect(t.some(x=>x.includes('Splash one'))).toBe(true);
-    expect(t.some(x=>x.includes('Miss'))).toBe(true);
+    expect(t.some(x=>x.includes('SAM away'))).toBe(true);
+    expect(t.some(x=>x.includes('target destroyed'))).toBe(true);
+    expect(t.some(x=>x.includes('missed'))).toBe(true);
   });
 });
 
@@ -199,7 +169,7 @@ describe('crew damage FLASH', () => {
     stepCrew(world);
     const flash = crewR(world).filter(e=>(e.payload as any).priority==='flash');
     expect(flash.length).toBe(1);
-    expect((flash[0].payload as any).text).toContain('Hull 60');
+    expect((flash[0].payload as any).text).toContain('Hull at 60%');
     expect((flash[0].payload as any).station).toBe('Bridge');
   });
 });
@@ -212,8 +182,8 @@ describe('crew warnings', () => {
     stepCrew(world);
     world.logEvent('command_response','player',{action:'radio_warning',target:'d',trackId:'S-08',outcome:'complied'});
     stepCrew(world);
-    const ignored = crewR(world).find(e=>(e.payload as any).text.includes('ignored warning'));
-    const complied = crewR(world).find(e=>(e.payload as any).text.includes('acknowledged'));
+    const ignored = crewR(world).find(e=>(e.payload as any).text.includes('ignored our warning'));
+    const complied = crewR(world).find(e=>(e.payload as any).text.includes('acknowledged our warning'));
     expect((ignored!.payload as any).priority).toBe('priority');
     expect((complied!.payload as any).priority).toBe('routine');
     expect((ignored!.payload as any).station).toBe('Radio');
@@ -254,7 +224,7 @@ describe('crew A9 no early leak', () => {
     const esmTexts = texts(world).filter(t=>t.includes('commercial weather radar'));
     expect(esmTexts.length).toBe(1);
     const allAfter = texts(world).join(' ');
-    expect(allAfter).not.toContain('civil');
+    expect(allAfter).toContain('civilian air traffic');
     expect(allAfter).not.toContain('212');
     expect(allAfter).not.toContain('SECRET');
   });

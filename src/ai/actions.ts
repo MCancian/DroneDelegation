@@ -2,6 +2,7 @@ import type { World } from '../sim/world';
 import type { Command } from '../sim/commands';
 import { validateCommand } from '../sim/commands';
 import type { Classification, PointDefenseMode } from '../sim/types';
+import { decodeActionBlock, extractActionBlocks } from './actionBlocks';
 
 const VALID_ACTIONS = new Set([
   'engage_sam', 'engage_gun', 'ciws', 'chaff',
@@ -31,16 +32,6 @@ const NEEDS_TARGET = new Set([
   'engage_sam', 'engage_gun', 'ciws', 'iff_challenge', 'radio_warning',
   'hail', 'illuminate', 'warning_shots', 'classify',
 ]);
-
-function extractBlocks(text: string): string[] {
-  const blocks: string[] = [];
-  const regex = /```action\s*\r?\n([\s\S]*?)```/gi;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(text)) !== null) {
-    blocks.push(match[1]);
-  }
-  return blocks;
-}
 
 function resolveTarget(
   world: World,
@@ -129,18 +120,16 @@ export function parseActions(
 ): { commands: Command[]; errors: string[] } {
   const commands: Command[] = [];
   const errors: string[] = [];
-  const blocks = extractBlocks(text);
+  const blocks = extractActionBlocks(text);
 
   for (const block of blocks) {
-    let parsed: unknown;
+    let items: unknown[];
     try {
-      parsed = JSON.parse(block);
+      items = decodeActionBlock(block.content);
     } catch {
       errors.push('Malformed JSON in action block');
       continue;
     }
-
-    const items: unknown[] = Array.isArray(parsed) ? parsed : [parsed];
 
     for (const item of items) {
       if (item === null || typeof item !== 'object' || Array.isArray(item)) {

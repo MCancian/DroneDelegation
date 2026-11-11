@@ -25,9 +25,9 @@ import {
 import type { ScreenRect } from '../src/ui/radarProjection';
 
 describe('radarProjection', () => {
-  it('exposes the required range scales', () => {
+  it('exposes the required range scales and starts fully zoomed out', () => {
     expect(RANGE_SCALES).toEqual([10, 20, 40, 80]);
-    expect(DEFAULT_RANGE_NM).toBe(40);
+    expect(DEFAULT_RANGE_NM).toBe(80);
   });
 
   it('maps the own-ship origin to the scope center', () => {

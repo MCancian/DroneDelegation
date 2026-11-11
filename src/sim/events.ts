@@ -25,10 +25,15 @@ export interface CrewReportPayload {
   station: CrewStation;
   priority: CrewPriority;
   text: string;
+  domain?: Domain;
+  /** Sensor-domain/function routing for the role-based Crew Feed. */
+  role?: CrewRole;
   contactId?: string;
   trackId?: string;
   triggerId?: string;
 }
+
+export type CrewRole = 'air-search' | 'surface-search' | 'weapons-officer';
 
 export interface AutonomyChangePayload {
   domain: AutonomyDomain | 'pointDefense';

@@ -74,6 +74,18 @@ describe('handleChatReply', () => {
     expect(notices.some(n => n.includes('chaff'))).toBe(true);
   });
 
+  it.each([
+    ['deploy chaff twice', 4],
+    ['should I deploy chaff twice?', 6],
+  ])('preserves direct-order gating for multi-object blocks: %s', (order, remaining) => {
+    const w = setup();
+    const reply = '```action\n{"action":"chaff"}\n{"action":"chaff"}\n```';
+    const notices = handleChatReply(w, reply, order);
+    expect(notices.some(n => n.includes('Error'))).toBe(false);
+    expect(w.ownShip.inventory.chaff).toBe(remaining);
+    if (remaining === 6) expect(notices.some(n => n.includes('not executed'))).toBe(true);
+  });
+
   it('validation errors logged as ai-action-error', () => {
     const w = setup();
     const notices = handleChatReply(w, block({ action: 'engage_sam', target: 'zzz' }), 'engage zzz');
