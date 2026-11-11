@@ -1,5 +1,6 @@
 import type { Behavior, Classification, ContactResponses, Domain, OwnShip, RadarContact, Rcs, SensorInfo, SurfaceSize, Truth, Vec2 } from '../types';
 import { World } from '../world';
+import { DEFAULT_SENSOR_CONFIG } from '../sensors';
 import { STEP_S } from '../clock';
 import { bearingTo, fromBearingRange, rangeTo } from '../geo';
 import { setBehavior } from '../kinematics';
@@ -7,6 +8,7 @@ import { WEAPONS_HOOKS } from '../weapons';
 import { stepCrew } from './crew';
 import type { CrewReportPayload } from '../events';
 import type { WeaponsConfig } from './weaponsConfig';
+import type { SensorConfig } from '../sensors';
 
 export type CrewStation = 'CIC' | 'TAO-Air' | 'SWC' | 'EW' | 'Lookouts' | 'Bridge' | 'Radio';
 export type CrewPriority = 'routine' | 'priority' | 'flash';
@@ -67,6 +69,7 @@ export interface Scenario {
   durationS: number;
   ownShip: OwnShip;
   weaponsConfig?: WeaponsConfig;
+  sensorConfig?: SensorConfig;
   contacts: ScenarioContact[];
   triggers: ScenarioTrigger[];
 }
@@ -328,10 +331,10 @@ export class ScenarioRunner {
           const track = this.world.trackFor(action.contactId);
           if (!track || !track.detected) return;
 
-          // Suppress no-visual Lookouts report when visual ID is already available
+          // Suppress uncertain Lookouts wording when visual ID is already available.
           if (
             action.station === 'Lookouts' &&
-            action.text.toLowerCase().includes('no visual') &&
+            /\b(?:no visual|cannot identify)\b/i.test(action.text) &&
             track.visual.kind === 'identified'
           ) {
             return;
@@ -345,6 +348,11 @@ export class ScenarioRunner {
         };
         if (action.contactId !== undefined) {
           payload.contactId = action.contactId;
+          const visible = this.world.visibleTracks().find(track => track.id === action.contactId);
+          if (visible) {
+            payload.domain = visible.domain;
+            payload.trackId = visible.trackId;
+          }
         }
         this.world.logEvent('crew-report', 'scenario', payload);
         break;
@@ -394,7 +402,9 @@ export function loadScenario(
     .filter((c) => (c.spawnAtS ?? 0) <= 0)
     .map((c) => buildContact(c, scenario.ownShip));
 
-  const world = new World({ seed, ownShip: scenario.ownShip, contacts: initialContacts, weaponsConfig: scenario.weaponsConfig ? structuredClone(scenario.weaponsConfig) : undefined });
+  const world = new World({ seed, ownShip: scenario.ownShip, contacts: initialContacts,
+    weaponsConfig: scenario.weaponsConfig ? structuredClone(scenario.weaponsConfig) : undefined,
+    sensorConfig: structuredClone(scenario.sensorConfig ?? DEFAULT_SENSOR_CONFIG) });
   const runner = new ScenarioRunner(scenario, world, hooks);
   runner.update();
 

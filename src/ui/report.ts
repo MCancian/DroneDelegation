@@ -42,7 +42,8 @@ export function createReport(model: AarModel, options: ReportOptions = {}): Repo
   summary.setAttribute('aria-label', 'Outcome summary');
   for (const [label, value] of [
     ['Hull', `${Math.round(model.summary.hullPct)}%`], ['Missiles inbound', String(model.summary.missilesInbound)],
-    ['Missiles hit', String(model.summary.missilesHit)], ['Missiles defeated', String(model.summary.missilesDefeated)],
+    ['Missiles hit', String(model.summary.missilesHit)], ['Missiles intercepted', String(model.summary.missilesIntercepted)],
+    ['Missiles missed', String(model.summary.missilesMissed)],
     ['Missiles unresolved', String(model.summary.missilesUnresolved)], ['Hostiles neutralized', String(model.summary.hostilesNeutralized)],
     ['Civilian lives lost', String(model.summary.civilianLivesLost)],
   ]) {

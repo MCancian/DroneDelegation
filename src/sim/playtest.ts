@@ -28,7 +28,8 @@ export interface PlaytestResult {
   a1Stopped: boolean;
   a1MissilesLaunched: number;
   a1MissilesHit: number;
-  a1MissilesDefeated: number;
+  a1MissilesIntercepted: number;
+  a1MissilesMissed: number;
   a1MissilesUnresolved: number;
   a9EngagedAtS: number | null;
   a9ShotDown: boolean;
@@ -49,6 +50,7 @@ export function runPlaytest(strategy: Strategy, seed: number): PlaytestResult {
   history.observe(world);
   let a1Attempted = false;
   let s7Attempted = false;
+  let pointDefenseActivated = false;
   let s7VisualAtS: number | null = null;
   for (let step = 0; step < Math.round(STRAIT_TRANSIT.durationS / STEP_S); step++) {
     world.step(STEP_S);
@@ -58,6 +60,13 @@ export function runPlaytest(strategy: Strategy, seed: number): PlaytestResult {
     proposals.update();
     doctrine.update();
     const tracks = (strategy === 'careful' || strategy === 'slow') ? world.visibleTracks() : [];
+    // An ideal careful player reacts promptly to the sensor warning. MANUAL
+    // is the default, so surviving missiles requires an explicit decision.
+    if (strategy === 'careful' && !pointDefenseActivated &&
+        tracks.some(track => track.alive && track.domain === 'missile' && !track.ownMissile)) {
+      pointDefenseActivated = executeCommand(world, { action: 'set_point_defense', mode: 'auto' }, 'player').ok;
+      executeCommand(world, { action: 'chaff' }, 'player');
+    }
     const s7 = tracks.find(t => t.id === STRAIT_IDS.s7 && t.alive);
     if (s7?.sensors.visual.kind === 'identified') {
       s7VisualAtS ??= world.time;
@@ -78,15 +87,16 @@ export function runPlaytest(strategy: Strategy, seed: number): PlaytestResult {
   const stopped = (id: string) => events.some(e => isEventOfType(e, 'contact_destroyed') && e.payload.contactId === id);
   const a1Missiles = events.filter(e => isEventOfType(e, 'ascm_launched') && e.payload.launcherId === STRAIT_IDS.a1);
   const a1Impacts = events.filter(e => isEventOfType(e, 'missile_impact') && e.payload.launcherId === STRAIT_IDS.a1);
-  const a1Defeated = a1Missiles.filter(e => isEventOfType(e, 'ascm_launched') && events.some(d => isEventOfType(d, 'contact_destroyed') && d.payload.contactId === e.payload.missileId));
+  const a1Intercepted = a1Missiles.filter(e => isEventOfType(e, 'ascm_launched') && events.some(d => isEventOfType(d, 'contact_destroyed') && d.payload.contactId === e.payload.missileId));
   return {
     seed, strategy, endedAtS: world.time, hullPct: world.ownShip.hullPct, shipLost: world.weapons.shipLost,
     s7LaunchedAtS: launched(STRAIT_IDS.s7), s7VisualAtS, s7EngagedAtS: engaged(STRAIT_IDS.s7), s7Stopped: stopped(STRAIT_IDS.s7),
     a1LaunchedAtS: launched(STRAIT_IDS.a1), a1EngagedAtS: engaged(STRAIT_IDS.a1), a1Stopped: stopped(STRAIT_IDS.a1),
     a1MissilesLaunched: a1Missiles.length,
     a1MissilesHit: a1Impacts.filter(e => isEventOfType(e, 'missile_impact') && e.payload.hit).length,
-    a1MissilesDefeated: a1Defeated.length,
-    a1MissilesUnresolved: a1Missiles.length - a1Impacts.length - a1Defeated.length,
+    a1MissilesIntercepted: a1Intercepted.length,
+    a1MissilesMissed: a1Impacts.filter(e => isEventOfType(e, 'missile_impact') && !e.payload.hit).length,
+    a1MissilesUnresolved: a1Missiles.length - a1Impacts.length - a1Intercepted.length,
     a9EngagedAtS: engaged(STRAIT_IDS.a9), a9ShotDown: stopped(STRAIT_IDS.a9), a9Spawned: !!world.contactById(STRAIT_IDS.a9),
   };
 }
@@ -106,7 +116,7 @@ export function summarizePlaytests(results: readonly PlaytestResult[]) {
       s7StoppedBeforeLaunch: count(r => r.s7Stopped && r.s7LaunchedAtS === null),
       s7EngagedBeforeLaunch: count(r => r.s7EngagedAtS !== null && (r.s7LaunchedAtS === null || r.s7EngagedAtS < r.s7LaunchedAtS)),
       s7Launched: count(r => r.s7LaunchedAtS !== null),
-      a1StoppedOrMissilesDefeated: count(r => r.a1Stopped && r.a1LaunchedAtS === null || r.a1MissilesLaunched > 0 && r.a1MissilesDefeated === r.a1MissilesLaunched),
+      a1StoppedOrMissilesIntercepted: count(r => r.a1Stopped && r.a1LaunchedAtS === null || r.a1MissilesLaunched > 0 && r.a1MissilesIntercepted === r.a1MissilesLaunched),
       a9ShotDown: count(r => r.a9ShotDown), a9NotReached: count(r => !r.a9Spawned),
     };
   });

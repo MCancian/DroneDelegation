@@ -28,6 +28,7 @@ export interface RadarOptions {
   rangeNm?: number;
   onRangeChange?: (nm: number) => void;
   now?: () => number;
+  labelFontSize?: () => number;
 }
 
 export interface Radar {
@@ -50,7 +51,6 @@ const TICK_MAJOR_DEG = 30;
 const TICK_MINOR_LENGTH_PX = 5;
 const TICK_MAJOR_LENGTH_PX = 10;
 const BEARING_LABEL_OFFSET_PX = 14;
-const BEARING_LABEL_FONT_PX = 11;
 
 const SWEEP_PERIOD_MS = 4000;
 const SWEEP_TRAIL_DEG = 40;
@@ -73,8 +73,6 @@ const HISTORY_DOT_RADIUS_PX = 1.5;
 
 const LEADER_MIN_PX = 6;
 
-const LABEL_FONT_PX = 11;
-const LABEL_LINE_HEIGHT_PX = 13;
 
 const SELECTED_RADIUS_PX = 13;
 const SELECTED_DASH_PX = 4;
@@ -148,6 +146,8 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
   let rangeNm = clampRange(opts?.rangeNm ?? DEFAULT_RANGE_NM);
   let projection: Projection | null = null;
   let lastOwnShipPosition: Vec2 = { x: 0, y: 0 };
+  let labelFontPx = 14;
+  let labelLineHeightPx = 18;
 
   const measure = (): { cssWidth: number; cssHeight: number } => {
     const cssWidth = positiveFinite(canvas.clientWidth, 1);
@@ -190,13 +190,13 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
       const point = projectionWorldToScreen(proj, c.position);
       return { x: point.x - 9, y: point.y - 9, width: 18, height: 18 };
     });
-    ctx.font = `${LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
+    ctx.font = `${labelFontPx}px ${MONOSPACE_FONT}`;
     const requests = visible.map(c => {
       const lines = contactLabelLines(c);
       return {
         id: c.id, anchor: projectionWorldToScreen(proj, c.position),
         width: Math.ceil(Math.max(...lines.map(line => ctx.measureText(line).width))),
-        height: lines.length * LABEL_LINE_HEIGHT_PX,
+        height: lines.length * labelLineHeightPx,
         priority: c.id === selectedId || c.trackId === selectedId ? 2 : c.domain === 'missile' && !c.ownMissile ? 1 : 0,
       };
     });
@@ -220,14 +220,14 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
       ctx.arc(center.x, center.y, ringRadius, 0, TAU);
       ctx.stroke();
 
-      ctx.font = `${BEARING_LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
+      ctx.font = `${labelFontPx}px ${MONOSPACE_FONT}`;
       const text = formatNmLabel(nm);
       const textWidth = ctx.measureText(text).width;
       const bearing = pickRingLabelBearing(
         proj,
         ringRadius,
         textWidth + 4,
-        BEARING_LABEL_FONT_PX + 4,
+        labelFontPx + 4,
         obstacles,
       );
       const label = pointAtBearing(proj, bearing, ringRadius);
@@ -247,7 +247,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
   const drawBearingTicks = (proj: Projection): void => {
     ctx.strokeStyle = TICK_COLOR;
     ctx.lineWidth = TICK_LINE_WIDTH_PX;
-    ctx.font = `${BEARING_LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
+    ctx.font = `${labelFontPx}px ${MONOSPACE_FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -323,7 +323,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
   };
 
   const drawContacts = (proj: Projection, contacts: SensorTrack[], nowMs: number): void => {
-    ctx.font = `${LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
+    ctx.font = `${labelFontPx}px ${MONOSPACE_FONT}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
@@ -417,7 +417,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
   };
 
   const drawLabels = (proj: Projection, contacts: SensorTrack[], placements: RadarLabelPlacement[], nowMs: number): void => {
-    ctx.font = `${LABEL_FONT_PX}px ${MONOSPACE_FONT}`;
+    ctx.font = `${labelFontPx}px ${MONOSPACE_FONT}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     for (const placement of placements) {
@@ -435,7 +435,7 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
         Math.max(placement.y, Math.min(point.y, placement.y + placement.height)));
       ctx.stroke();
       ctx.fillStyle = color;
-      contactLabelLines(contact).forEach((line, i) => ctx.fillText(line, placement.x, placement.y + i * LABEL_LINE_HEIGHT_PX));
+      contactLabelLines(contact).forEach((line, i) => ctx.fillText(line, placement.x, placement.y + i * labelLineHeightPx));
     }
     ctx.globalAlpha = 1;
   };
@@ -501,6 +501,9 @@ export function createRadar(canvas: HTMLCanvasElement, opts?: RadarOptions): Rad
 
     const center = projection.centerPx;
 
+    const requestedFont = opts?.labelFontSize?.() ?? 14;
+    labelFontPx = Number.isFinite(requestedFont) && requestedFont > 0 ? requestedFont : 14;
+    labelLineHeightPx = Math.ceil(labelFontPx * 1.3);
     const labels = computeLabels(projection, view.contacts, view.selectedId, cssWidth, cssHeight);
     drawRings(projection, labels.obstacles);
     drawScopeOuter(projection);

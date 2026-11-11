@@ -154,7 +154,7 @@ export function createContactPanel(root: HTMLElement): ContactPanel {
       if (action.disabled && action.disabledReason) {
         const reasonLabel = document.createElement('span');
         reasonLabel.textContent = action.disabledReason;
-        reasonLabel.style.fontSize = '0.6rem';
+        reasonLabel.style.fontSize = 'var(--text-secondary-size)';
         reasonLabel.style.color = '#ff8800';
         reasonLabel.id = `contact-action-reason-${action.id}`;
         button.setAttribute('aria-describedby', reasonLabel.id);

@@ -1,7 +1,7 @@
 import type { Vec2 } from '../sim/types';
 
 export const RANGE_SCALES: readonly number[] = [10, 20, 40, 80];
-export const DEFAULT_RANGE_NM = 40;
+export const DEFAULT_RANGE_NM = 80;
 
 export interface Projection {
   centerPx: Vec2;

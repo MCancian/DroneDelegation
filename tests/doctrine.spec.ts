@@ -7,7 +7,7 @@ import { fromBearingRange } from '../src/sim/geo';
 import { makeWorld } from './helpers/sim';
 
 const hostile: ObservedHostileAct = {
-  trackId: 'A-01', t: 0, altitudeFt: 15000, speedKts: 420,
+  trackId: 'A-01', t: 0, altitudeFt: 300, speedKts: 600,
   bearingDeg: 45, rangeNm: 30,
 };
 
@@ -58,8 +58,8 @@ describe('doctrine from observed evidence', () => {
     expect(proposals).toHaveLength(1);
   });
 
-  it('uses inclusive profile boundaries, first observed bearing, and approach', () => {
-    const target = track({ altitudeFt: 16000, speedKts: 450, position: fromBearingRange({ x: 0, y: 0 }, 60, 39) });
+  it('matches the initial approach bearing regardless of altitude and speed', () => {
+    const target = track({ altitudeFt: 35000, speedKts: 460, position: fromBearingRange({ x: 0, y: 0 }, 60, 39) });
     const { world, doctrine, proposals } = harness([target]);
     doctrine.update();
     expect(world.events.filter((e) => e.type === 'doctrine_match')).toHaveLength(1);
@@ -72,9 +72,7 @@ describe('doctrine from observed evidence', () => {
   });
 
   it.each([
-    ['altitude', { altitudeFt: 16001 }],
-    ['speed', { speedKts: 451 }],
-    ['bearing', { position: fromBearingRange({ x: 0, y: 0 }, 61, 39) }],
+    ['bearing beyond tolerance', { position: fromBearingRange({ x: 0, y: 0 }, 61, 39) }],
     ['sector', { position: fromBearingRange({ x: 0, y: 0 }, 19, 39) }],
     ['opening', { courseDeg: 45 }],
     ['same observed attacker', { trackId: 'A-01' }],
@@ -147,10 +145,10 @@ describe('doctrine from observed evidence', () => {
     const target = track();
     const { world, doctrine, proposals } = harness([target]);
     doctrine.update();
-    target.altitudeFt = 17000;
+    target.speedKts = 0;
     world.time = 5;
     doctrine.update();
-    target.altitudeFt = 15000;
+    target.speedKts = 420;
     world.time = 6;
     doctrine.update();
     world.time = 20;

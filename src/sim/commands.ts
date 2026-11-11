@@ -180,7 +180,7 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
         return { ok: false, error: `Target ${world.trackFor(cmd.target)?.trackId ?? "contact"} domain '${contact.domain}' is not valid for IFF challenge` };
       }
       if (hasPendingDuplicate(world, cmd.target, 'iff_challenge')) {
-        return { ok: false, error: `Pending IFF challenge already exists for ${world.trackFor(cmd.target)?.trackId ?? "contact"}` };
+        return { ok: false, error: `Awaiting IFF response from ${world.trackFor(cmd.target)?.trackId ?? "contact"}` };
       }
       return { ok: true };
     }
@@ -330,6 +330,9 @@ export function validateCommand(world: World, cmd: Command): CommandResult {
       }
       const cfg = world.weapons.config.ciws;
       const range = rangeTo(world.ownShip.position, contact.position);
+      if (range <= world.weapons.config.ascm.arrivalRadiusNm) {
+        return { ok: false, error: 'Missile has entered the impact radius; too late for CIWS' };
+      }
       if (range > cfg.maxRangeNm) {
         return { ok: false, error: `Target at ${range.toFixed(1)} nm exceeds CIWS range ${cfg.maxRangeNm} nm` };
       }

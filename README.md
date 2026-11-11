@@ -34,6 +34,17 @@ npm run typecheck
 npm test
 ```
 
+The deterministic browser smoke check runs separately from `verify`, using
+Chromium and a controlled AI upstream. After `npm ci`, install Chromium once:
+
+```bash
+bash scripts/node22.sh npx playwright install chromium
+bash scripts/node22.sh npm run smoke
+```
+
+CI runs it in a separate job on every PR. The [tooling guide](docs/TOOLING.md#browser-smoke)
+describes browser prerequisites, coverage, cleanup, screenshots, and diagnostics.
+
 The AI assistant runs against a local OpenAI-compatible LLM server (default `http://127.0.0.1:8088`, model `jarvis`).
 
 ## Manual controls
@@ -42,7 +53,7 @@ The top bar provides own-ship maneuver and point-defense controls; the contact p
 
 **Own-ship maneuver** — Enter a course (degrees true, 0–359.9) and speed (knots, 0–35) then click **Maneuver**. The ship immediately adopts the commanded course and speed.
 
-**Point defense** — The `PD: AUTO` / `PD: MANUAL` toggle controls whether CIWS and chaff respond to inbound missiles automatically (actor `crew-auto`). The **Chaff** button deploys one chaff load manually.
+**Point defense** — The `PD: AUTO` / `PD: MANUAL` toggle controls whether CIWS and chaff respond to detected inbound missiles automatically (actor `crew-auto`) once enabled. Point defense starts in MANUAL; the Chaff button remains available in either mode. Strait missile warnings leave only a few game seconds to react. The **Chaff** button deploys one chaff load manually.
 
 **Contact actions** — Click a radar track to select it. The panel shows only actions valid for that contact's domain. Disabled buttons display the reason inline (e.g. "out of range 52.3 nm > 40 nm") so the numeric constraint is visible without hovering.
 
@@ -87,11 +98,11 @@ cancels its pending proposals, and execution rechecks target and weapon validity
 Autonomous execution results and failures appear in chat.
 
 The deterministic doctrine backstop evaluates sensor observations each game
-second, even with Jarvis offline. It logs ROE-3 profile matches and ROE-5 group
+second, even with Jarvis offline. It logs ROE-3 approach-vector matches and ROE-5 group
 departures under HOLD, then routes qualifying engagements through the same
-proposal manager after 15 seconds of continuous matching. The Air profile rule
+proposal manager after 15 seconds of continuous matching. The Air approach-vector rule
 deliberately matches the later civilian airliner. Surface doctrine fires the gun
-within 9 nm; weapon outcomes retain the scenario's normal hit probabilities.
+within 9 nm; a valid gun engagement destroys its target after a 10-second burst. SAM and missile-defense outcomes remain probabilistic.
 
 ## Backend configuration
 
@@ -120,17 +131,27 @@ The spec (§8) defines command semantics but leaves several numeric parameters u
 
 ## Tooling
 
-Development tooling (Jarvis caller, packet builder, staged apply, Node 22 wrapper) is documented in [docs/TOOLING.md](docs/TOOLING.md).
+The [development tooling guide](docs/TOOLING.md) covers native edits and diff
+review, the optional Jarvis packet/caller flow, and the Node 22 wrapper. The
+current task selects the authoring model and scope.
 
-Run all verification gates locally:
+Run all implementation verification gates locally:
 
 ```bash
 bash scripts/node22.sh npm run verify
 ```
 
+[M9 Tooling Reliability](https://github.com/MCancian/DroneDelegation/milestone/9)
+tracks the read-only milestone/checkout preflight
+([#59](https://github.com/MCancian/DroneDelegation/issues/59)) and maintained
+browser smoke checks with prompt failure diagnostics
+([#60](https://github.com/MCancian/DroneDelegation/issues/60)), plus the development
+host's noninteractive login-shell prompt initialization fix
+([#61](https://github.com/MCancian/DroneDelegation/issues/61)).
+
 ## Taking the watch
 
-The briefing introduces the ship and authority settings before the clock starts.
+The briefing introduces Jarvis, the ship, and authority settings before the clock starts. Text defaults to 16 px with 14 px secondary labels. The Text control offers Compact, Standard, and Large sizes, remembers the choice, and also scales radar labels. Crew Feed uses Air Search, Surface Search, Weapons Officer, and All tabs; urgent alerts stay visible across tabs. Officers give brief sensor-grounded assessments rather than contact readouts or repeated motion reports.
 Select **Take the watch** when ready: from then on the scenario runs continuously.
 Keys **1–4** set radar range, **Esc** clears the selected track, and **/** focuses
 chat when available. The missile ETA is an estimate from observed track motion;

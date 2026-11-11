@@ -5,16 +5,13 @@ import { SituationHistory } from '../src/ai/situation';
 import { loadScenario } from '../src/sim/scenario/scenario';
 import { STRAIT_IDS, STRAIT_TRANSIT, STRAIT_TRIGGERS } from '../src/sim/scenario/strait';
 import type { AutonomyLevel, GameEvent } from '../src/sim/types';
-import { WEAPONS_CONFIG } from '../src/sim/scenario/weaponsConfig';
 
 function play(air: AutonomyLevel, surface: AutonomyLevel) {
   const { world, runner } = loadScenario(STRAIT_TRANSIT, 123);
   world.autonomy.air = air;
   world.autonomy.surface = surface;
   // Isolate the authority outcome from possible ship loss due to enemy missile
-  // RNG. Weapon behavior against the targets retains the normal scenario Pk.
-  // Preserve the historical weapon RNG stream used by this attribution/timing fixture.
-  world.weapons.config = structuredClone(WEAPONS_CONFIG);
+  // RNG. Weapon behavior against the targets retains normal scenario settings.
   world.weapons.config.ascm.pHit = 0;
   world.weapons.config.ascm.pHitChaff = 0;
   const manager = new ProposalManager(world);
@@ -54,14 +51,18 @@ describe('doctrine in the Strait Transit scenario', () => {
     expect(payload(sam!).rangeNm).toBeLessThanOrEqual(40);
     expect(payload(sam!).rangeNm).toBeGreaterThan(32);
     const s7Launch = world.events.find((event) => event.type === 'trigger' && payload(event).triggerId === STRAIT_TRIGGERS.s7Launch);
-    // A successful gun burst may stop the launch entirely; the normal seed
-    // pinned fixture misses and supplies a measured event for this timing check.
-    expect(s7Launch).toBeDefined();
-    expect(gun!.t).toBeLessThan(s7Launch!.t);
+    expect(s7Launch).toBeUndefined();
+    const destruction = world.events.find(event => event.type === 'contact_destroyed' && payload(event).contactId === STRAIT_IDS.s7);
+    expect(destruction).toBeDefined();
+    expect(destruction!.t - gun!.t).toBeCloseTo(world.weapons.config.gun.burstS, 1);
+    expect(world.contactById(STRAIT_IDS.s7)?.alive).toBe(false);
     // A successful intercept can remove the airliner before its 32 nm report.
     // Compare against the same-seed HOLD trajectory to retain a real report
     // time instead of assuming that a destroyed aircraft still reports.
     const reference = play('HOLD', 'HOLD');
+    const referenceLaunch = reference.world.events.find(event => event.type === 'trigger' && payload(event).triggerId === STRAIT_TRIGGERS.s7Launch);
+    expect(referenceLaunch).toBeDefined();
+    expect(destruction!.t).toBeLessThan(referenceLaunch!.t);
     const civilReport = reference.world.events.find((event) => event.type === 'trigger' && payload(event).triggerId === STRAIT_TRIGGERS.a9Esm);
     expect(civilReport).toBeDefined();
     expect(sam!.t).toBeLessThan(civilReport!.t);

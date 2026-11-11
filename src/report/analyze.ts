@@ -42,7 +42,8 @@ export interface AarModel {
     hullPct: number;
     missilesInbound: number;
     missilesHit: number;
-    missilesDefeated: number;
+    missilesIntercepted: number;
+    missilesMissed: number;
     missilesUnresolved: number;
     hostilesNeutralized: number;
     civilianLivesLost: number;
@@ -59,6 +60,18 @@ const str = (value: unknown): string | null => typeof value === 'string' ? value
 const num = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) ? value : null;
 const level = (value: unknown): AutonomyLevel | null => value === 'HOLD' || value === 'CONSENT' || value === 'VETO' || value === 'WEAPONS_FREE' ? value : null;
 
+/** Recognize affirmative sensor reports, including the previous crew wording. */
+function recordsVisualIdentification(payload: Obj): boolean {
+  const text = str(payload.text) ?? '';
+  if (payload.station === 'Lookouts') {
+    return /^(?:Sir, lookouts visually identify a |Lookouts: \S+ identified as )\S/i.test(text);
+  }
+  // A contact first seen within visual range includes the identification in
+  // its initial surface assessment rather than emitting a second report.
+  return payload.station === 'SWC' &&
+    /^Sir, new surface contact bearing \d{3}\. Lookouts visually identify a \S/i.test(text);
+}
+
 /** Pure analysis of recorded events; it does not simulate unobserved information. */
 export function analyze(events: readonly GameEvent[], meta: ScenarioMeta): AarModel {
   const contacts = new Map(meta.scenario.contacts.map(c => [c.id, c]));
@@ -73,7 +86,7 @@ export function analyze(events: readonly GameEvent[], meta: ScenarioMeta): AarMo
   const resolved = new Set<string>();
   const destroyed = new Set<string>();
   let hits = 0, hostiles = 0, casualties = 0;
-  let pointDefense: 'auto' | 'manual' = 'auto';
+  let pointDefense: 'auto' | 'manual' = 'manual';
 
   for (const event of events) {
     const p = obj(event.payload);
@@ -140,10 +153,11 @@ export function analyze(events: readonly GameEvent[], meta: ScenarioMeta): AarMo
     }
   }
   // A missed missile also no longer threatens the ship.
-  const defeatedOrMissed = new Set([...defeated].filter(id => inbound.has(id)));
+  const intercepted = new Set([...defeated].filter(id => inbound.has(id)));
+  const missed = new Set<string>();
   for (const event of events) if (event.type === 'missile_impact') {
     const p = obj(event.payload); const id = str(p.missileId);
-    if (id && p.hit === false && inbound.has(id)) defeatedOrMissed.add(id);
+    if (id && p.hit === false && inbound.has(id)) missed.add(id);
   }
   const unresolved = [...inbound].filter(id => !defeated.has(id) && !resolved.has(id)).length;
 
@@ -163,7 +177,7 @@ export function analyze(events: readonly GameEvent[], meta: ScenarioMeta): AarMo
     }
     if (id === 's7') {
       information.push({ t: null, text: 'Visual identification requires 3 nm; the launch threshold is 5 nm.' });
-      const visual = events.find(e => e.type === 'crew-report' && obj(e.payload).contactId === id && obj(e.payload).station === 'Lookouts' && /identified as/i.test(str(obj(e.payload).text) ?? ''));
+      const visual = events.find(e => e.type === 'crew-report' && obj(e.payload).contactId === id && recordsVisualIdentification(obj(e.payload)));
       information.push(visual ? { t: visual.t, text: str(obj(visual.payload).text) ?? 'Visual identification reported.' } : { t: null, text: 'Visual identification was not recorded.' });
     }
     if (id === 'a9') {
@@ -174,8 +188,8 @@ export function analyze(events: readonly GameEvent[], meta: ScenarioMeta): AarMo
         information.push({ t: civil.t, text: `${str(obj(civil.payload).text) ?? 'Civil confirmation reported.'}${relative}` });
       } else information.push({ t: null, text: 'Civil confirmation was not recorded during this playthrough.' });
     }
-    const lesson = id === 'a9' ? (dead ? 'Matching a hostile profile did not establish identity; review the authority and timing of the engagement.' : 'No civilian loss occurred for this contact; consider what evidence was available before deciding.')
-      : id === 's7' ? (dead && launches.length === 0 ? 'The craft was stopped before a recorded launch; visual identification was available only at shorter range.' : !dead && selected.some(d => launches.some(launch => d.t < launch.t)) ? 'A timely engagement did not guarantee neutralization; the craft survived to launch missiles.' : 'Visual identification was available only at shorter range than the launch threshold.')
+    const lesson = id === 'a9' ? (dead ? 'Matching a hostile approach vector did not establish identity; review the authority and timing of the engagement.' : 'No civilian loss occurred for this contact; consider what evidence was available before deciding.')
+      : id === 's7' ? (dead && launches.length === 0 ? 'The craft was stopped before a recorded launch; visual identification was available only at shorter range.' : !dead && selected.some(d => launches.some(launch => d.t < launch.t)) ? 'No confirmed neutralization was recorded before the missile launch.' : 'Visual identification was available only at shorter range than the launch threshold.')
       : (launches.length ? 'The first hostile launch established intent and informed later decisions.' : 'Review the timing and information available before the first hostile act.');
     return { id: id === 'a1' ? 'E1' : id === 's7' ? 'E2' : 'E3', title, outcome, decisions: selected.map(d => ({ ...d })), information, lesson };
   }
@@ -183,7 +197,8 @@ export function analyze(events: readonly GameEvent[], meta: ScenarioMeta): AarMo
     scenarioName: meta.scenario.name, seed: meta.seed, endedAtS: meta.endedAtS, durationS: meta.scenario.durationS,
     verdict: meta.shipLost ? 'Ship lost' : casualties ? 'Transit complete with civilian losses' : 'Transit complete',
     summary: { hullPct: meta.hullPct, missilesInbound: inbound.size, missilesHit: hits,
-      missilesDefeated: defeatedOrMissed.size, missilesUnresolved: unresolved, hostilesNeutralized: hostiles, civilianLivesLost: casualties },
+      missilesIntercepted: intercepted.size, missilesMissed: missed.size,
+      missilesUnresolved: unresolved, hostilesNeutralized: hostiles, civilianLivesLost: casualties },
     keyEvents: [key('a1', 'E1 · Strike aircraft'), key('s7', 'E2 · Attack craft'), key('a9', 'E3 · Airliner')],
     autonomyTimeline: timeline, decisions, engagements,
   };

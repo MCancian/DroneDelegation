@@ -6,6 +6,9 @@
   --text: #7fff9f;
   --muted: #4f8f5f;
   --accent: #00ff66;
+  --text-body-size: 1rem;
+  --text-secondary-size: .875rem;
+  --text-heading-size: 1.125rem;
 }
 
 * {
@@ -23,6 +26,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: "Courier New", Courier, monospace;
+  font-size: var(--text-body-size);
   overflow: hidden;
 }
 
@@ -38,7 +42,7 @@ body {
   padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
-  font-size: 0.75rem;
+  font-size: var(--text-secondary-size);
   flex-wrap: wrap;
 }
 
@@ -65,7 +69,7 @@ body {
 }
 
 #radar {
-  flex: 0 0 65%;
+  flex: 0 0 60%;
   position: relative;
   min-width: 0;
   overflow: hidden;
@@ -113,7 +117,7 @@ body {
 
 h2 {
   margin: 0 0 0.5rem;
-  font-size: 0.85rem;
+  font-size: var(--text-body-size);
   letter-spacing: 0.08em;
   color: var(--accent);
   text-transform: uppercase;
@@ -136,7 +140,7 @@ p {
 
 .range-caption {
   color: var(--muted);
-  font-size: 0.65rem;
+  font-size: var(--text-secondary-size);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -146,7 +150,7 @@ p {
   border: 1px solid var(--border);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.75rem;
+  font-size: var(--text-secondary-size);
   padding: 0.15rem 0.4rem;
   cursor: pointer;
 }
@@ -173,12 +177,12 @@ p {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-  font-size: 0.75rem;
+  font-size: var(--text-secondary-size);
 }
 
 #weapon-inventory {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--text-secondary-size);
   white-space: nowrap;
   letter-spacing: 0.02em;
 }
@@ -188,7 +192,7 @@ p {
   border: 1px solid var(--border);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.75rem;
+  font-size: var(--text-secondary-size);
   padding: 0.15rem 0.4rem;
   cursor: pointer;
   white-space: nowrap;
@@ -214,7 +218,7 @@ p {
   border: 1px solid var(--border);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.75rem;
+  font-size: var(--text-secondary-size);
   padding: 0.15rem 0.3rem;
   width: 60px;
   min-width: 55px;
@@ -229,14 +233,14 @@ p {
 
 #command-controls label {
   color: var(--muted);
-  font-size: 0.65rem;
+  font-size: var(--text-secondary-size);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 #command-controls [role="status"] {
   color: #ff8800;
-  font-size: 0.7rem;
+  font-size: var(--text-secondary-size);
   min-width: 6rem;
   max-width: 18rem;
   overflow: hidden;
@@ -258,7 +262,7 @@ p {
   background: rgba(5, 8, 5, 0.88);
   border: 1px solid var(--border);
   padding: 0.5rem 0.65rem;
-  font-size: 0.7rem;
+  font-size: var(--text-body-size);
   line-height: 1.4;
   pointer-events: auto;
 }
@@ -282,7 +286,7 @@ p {
 .contact-label {
   color: var(--muted);
   text-transform: uppercase;
-  font-size: 0.6rem;
+  font-size: var(--text-secondary-size);
   letter-spacing: 0.05em;
 }
 
@@ -303,7 +307,7 @@ p {
   border: 1px solid var(--border);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.7rem;
+  font-size: var(--text-secondary-size);
   padding: 0.15rem 0.4rem;
   cursor: pointer;
 }
@@ -354,7 +358,7 @@ p {
 }
 
 .crew-msg {
-  font-size: 0.7rem;
+  font-size: var(--text-body-size);
   line-height: 1.4;
   display: flex;
   flex-wrap: wrap;
@@ -376,7 +380,7 @@ p {
 
 .crew-ts {
   color: var(--muted);
-  font-size: 0.65rem;
+  font-size: var(--text-secondary-size);
   white-space: nowrap;
 }
 
@@ -386,7 +390,7 @@ p {
 }
 
 .crew-priority {
-  font-size: 0.6rem;
+  font-size: var(--text-secondary-size);
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
@@ -404,7 +408,7 @@ p {
 }
 
 .crew-track {
-  font-size: 0.65rem;
+  font-size: var(--text-secondary-size);
   color: var(--accent);
   white-space: nowrap;
 }
@@ -454,7 +458,7 @@ p {
 }
 
 .chat-badge {
-  font-size: 0.6rem;
+  font-size: var(--text-secondary-size);
   padding: 0.1rem 0.35rem;
   border-radius: 2px;
   letter-spacing: 0.05em;
@@ -484,7 +488,7 @@ p {
 }
 
 .chat-msg {
-  font-size: 0.7rem;
+  font-size: var(--text-body-size);
   line-height: 1.4;
   display: flex;
   flex-wrap: wrap;
@@ -495,7 +499,7 @@ p {
 .chat-msg-label {
   font-weight: bold;
   white-space: nowrap;
-  font-size: 0.65rem;
+  font-size: var(--text-secondary-size);
   letter-spacing: 0.03em;
 }
 
@@ -532,7 +536,7 @@ p {
 }
 
 .chat-typing {
-  font-size: 0.65rem;
+  font-size: var(--text-secondary-size);
   color: var(--muted);
   font-style: italic;
   animation: chat-blink 1s infinite;
@@ -556,7 +560,7 @@ p {
   border: 1px solid var(--border);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.7rem;
+  font-size: var(--text-secondary-size);
   padding: 0.3rem 0.4rem;
   resize: none;
   min-height: 1.6rem;
@@ -581,7 +585,7 @@ p {
   border: 1px solid var(--border);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.7rem;
+  font-size: var(--text-secondary-size);
   padding: 0.25rem 0.5rem;
   cursor: pointer;
   white-space: nowrap;
@@ -616,7 +620,7 @@ p {
 }
 
 .chat-notice {
-  font-size: 0.65rem;
+  font-size: var(--text-secondary-size);
   color: #ff4444;
   margin-top: 0.3rem;
   line-height: 1.3;
@@ -633,7 +637,7 @@ p {
   border-radius: 3px;
   padding: 0.15rem 0.4rem;
   margin: 0.15rem 0;
-  font-size: 0.65rem;
+  font-size: var(--text-secondary-size);
   vertical-align: middle;
 }
 
@@ -681,7 +685,7 @@ p {
 
 #autonomy legend,
 .autonomy-domain-label {
-  font-size: 0.7rem;
+  font-size: var(--text-secondary-size);
   color: var(--text);
   margin-right: 0.3rem;
 }
@@ -692,7 +696,7 @@ p {
   border: 1px solid var(--border);
   padding: 0.25rem 0.35rem;
   font: inherit;
-  font-size: 0.65rem;
+  font-size: var(--text-secondary-size);
   cursor: pointer;
 }
 
@@ -744,7 +748,7 @@ p {
   margin: 0.4rem 0;
   border: 2px solid #4499cc;
   background: #0b202b;
-  font-size: 0.75rem;
+  font-size: var(--text-secondary-size);
   line-height: 1.4;
 }
 
@@ -797,30 +801,30 @@ p {
 .report-overlay :where(p, h2) { color: #e1ecec; }
 .report-content { max-width: 1100px; margin: 0 auto; }
 .report-header { border-bottom: 1px solid #375658; padding-bottom: 1.25rem; }
-.report-eyebrow { color: #74c9be; font-size: .75rem; letter-spacing: .16em; font-weight: 700; }
+.report-eyebrow { color: #74c9be; font-size: var(--text-secondary-size); letter-spacing: .16em; font-weight: 700; }
 .report-title { font-size: clamp(2rem, 5vw, 3rem); margin: .3rem 0; }
 .report-subtitle, .report-muted { color: #a4bcbc; }
 .report-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: .7rem; margin: 1.5rem 0 2rem; }
 .report-tile { background: #142a30; border: 1px solid #34565a; padding: .9rem; display: flex; flex-direction: column; gap: .3rem; }
 .report-tile-value { font-size: 1.65rem; font-weight: 700; }
-.report-tile-label { color: #adc4c2; font-size: .78rem; }
+.report-tile-label { color: #adc4c2; font-size: var(--text-secondary-size); }
 .report-key-events h2, .report-timeline h2, .report-debrief h2 { font-size: 1.2rem; margin: 1.6rem 0 .8rem; }
 .report-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: .8rem; }
 .report-card { background: #12252a; border: 1px solid #34565a; padding: 1rem; line-height: 1.5; }
 .report-card h3 { margin: 0 0 .7rem; font-size: 1.05rem; color: #8ad6ca; }
-.report-card h4 { color: #aec8c5; text-transform: uppercase; letter-spacing: .08em; font-size: .7rem; margin: 1rem 0 .3rem; }
-.report-card p { font-size: .88rem; margin: .35rem 0; }
+.report-card h4 { color: #aec8c5; text-transform: uppercase; letter-spacing: .08em; font-size: var(--text-secondary-size); margin: 1rem 0 .3rem; }
+.report-card p { font-size: var(--text-body-size); margin: .35rem 0; }
 .report-timeline-row { margin: 1rem 0; }
-.report-timeline-row h3 { font-size: .9rem; margin: 0 0 .3rem; }
+.report-timeline-row h3 { font-size: var(--text-body-size); margin: 0 0 .3rem; }
 .report-timeline-strip { display: flex; min-height: 2rem; overflow: hidden; border: 1px solid #547371; }
-.report-timeline-segment { flex-basis: 0; overflow: hidden; white-space: nowrap; padding: .45rem .3rem; text-overflow: clip; background: #354647; font-size: .65rem; }
+.report-timeline-segment { flex-basis: 0; overflow: hidden; white-space: nowrap; padding: .45rem .3rem; text-overflow: clip; background: #354647; font-size: var(--text-secondary-size); }
 .report-timeline-segment.level-consent { background: #426963; }
 .report-timeline-segment.level-veto { background: #836f3e; }
 .report-timeline-segment.level-weapons-free { background: #924a40; }
 .report-timeline-markers { color: #c6d6d4; font-size: .8rem; line-height: 1.6; }
 .report-log { border-top: 1px solid #34565a; margin-top: 1.5rem; padding-top: 1rem; }
 .report-log summary { cursor: pointer; font-weight: 700; }
-.report-decision-list { line-height: 1.7; font-size: .85rem; }
+.report-decision-list { line-height: 1.7; font-size: var(--text-body-size); }
 .report-debrief { margin: 2rem 0; padding: 1rem; border-left: 3px solid #74c9be; background: #142a30; }
 .report-debrief-text { white-space: pre-wrap; line-height: 1.6; }
 .report-actions { margin-top: 2rem; }
@@ -837,7 +841,7 @@ p {
 .briefing dt { color: #80e8ad; font-weight: bold; }
 .briefing dd { margin: 0; }
 .briefing .briefing-warning { color: #ffd88a; font-weight: bold; }
-.briefing-eyebrow { color: #80e8ad; font-size: .75rem; letter-spacing: .12em; }
+.briefing-eyebrow { color: #80e8ad; font-size: var(--text-secondary-size); letter-spacing: .12em; }
 .briefing-start { margin-top: 1rem; padding: .7rem 1rem; background: #91e7ac; color: #06130a; border: 0; font: inherit; font-weight: bold; cursor: pointer; }
 .briefing-start:focus-visible, .contact-actions button:focus-visible { outline: 2px solid white; outline-offset: 2px; }
 .contact-actions button[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
@@ -850,3 +854,34 @@ p {
 .crew-msg-priority { color: #ffe0a1; }
 @media (prefers-reduced-motion: reduce) { #side.flash-pulse { animation: none; box-shadow: inset 0 0 0 3px #ff5353; } }
 @media (max-width: 1350px) { #topbar { gap: .45rem; padding: .3rem .5rem; } #autonomy { gap: .35rem; } }
+
+/* Readable controls and role-based crew reports. */
+.text-size-control { display: inline-flex; align-items: center; gap: .35rem; font-size: var(--text-secondary-size); }
+.text-size-control select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); padding: .2rem; }
+.crew-feed-controls { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: .4rem; flex: 0 0 auto; }
+.crew-feed-tab { font: inherit; font-size: var(--text-secondary-size); color: #c8e0d4; background: var(--bg); border: 1px solid #45614d; padding: .3rem .4rem; cursor: pointer; }
+.crew-feed-tab[aria-selected="true"] { color: var(--accent); border-color: var(--accent); background: #12301c; }
+.crew-feed-tab:focus-visible, .text-size-control select:focus-visible { outline: 2px solid white; outline-offset: 1px; }
+.crew-feed-unread { margin-left: .3rem; color: #ffd88a; font-weight: bold; }
+.crew-feed-alerts { flex: 0 0 auto; max-height: 35%; overflow-y: auto; border-left: 3px solid #ff7676; padding-left: .35rem; margin-bottom: .4rem; }
+.crew-feed-alerts:empty { display: none; }
+.crew-msg { flex: 0 0 auto; }
+.crew-feed-list .crew-msg, .crew-feed-alerts .crew-msg { font-size: var(--text-body-size); }
+.crew-feed-list[hidden], .crew-feed-alerts[hidden], .crew-feed-unread[hidden] { display: none; }
+.crew-ts { color: #a1b8a6; }
+#crew-feed h2, #chat h2 { font-size: var(--text-heading-size); }
+#topbar { column-gap: .65rem; row-gap: .4rem; }
+#command-controls { min-width: 0; }
+#weapon-inventory { white-space: normal; }
+#side { min-width: 0; }
+.contact-panel { max-width: min(420px, calc(100% - 1.5rem)); }
+.chat-msg { font-size: var(--text-body-size); }
+@media (max-width: 1400px) {
+  #radar { flex-basis: 58%; }
+  #crew-feed, #chat { padding: .5rem; }
+  #autonomy { margin-left: 0; }
+  #autonomy fieldset, .autonomy-domain { flex-wrap: wrap; }
+  .briefing-content { padding: 1rem; }
+}
+
+.chat-input { font-size: var(--text-body-size); }

@@ -16,14 +16,14 @@ describe('autonomy', () => {
   it('starts in HOLD and records only real changes with independent snapshots', () => {
     const w = makeWorld();
     expect(w.autonomy).toEqual({ air: 'HOLD', surface: 'HOLD' });
-    expect(w.weapons.pointDefense).toBe('auto');
+    expect(w.weapons.pointDefense).toBe('manual');
     setAutonomy(w, 'air', 'CONSENT');
     setAutonomy(w, 'air', 'CONSENT');
     setAutonomy(w, 'surface', 'WEAPONS_FREE');
     const changes = w.events.filter(e => e.type === 'autonomy_changed');
     expect(changes).toHaveLength(2);
     expect(changes[0].actor).toBe('player');
-    expect(changes[0].payload).toMatchObject({ domain: 'air', previous: 'HOLD', level: 'CONSENT', autonomy: { air: 'CONSENT', surface: 'HOLD', pointDefense: 'auto' } });
+    expect(changes[0].payload).toMatchObject({ domain: 'air', previous: 'HOLD', level: 'CONSENT', autonomy: { air: 'CONSENT', surface: 'HOLD', pointDefense: 'manual' } });
     const snapshot = autonomySnapshot(w);
     snapshot.air = 'HOLD';
     expect(w.autonomy.air).toBe('CONSENT');
@@ -63,10 +63,10 @@ describe('autonomy', () => {
     setAutonomy(w, 'air', 'WEAPONS_FREE');
     setAutonomy(w, 'surface', 'VETO');
     expect(serializeSituation(w)).toContain('AIR WEAPONS_FREE | SURFACE VETO');
-    executeCommand(w, { action: 'set_point_defense', mode: 'manual' }, 'player');
-    executeCommand(w, { action: 'set_point_defense', mode: 'manual' }, 'player');
+    executeCommand(w, { action: 'set_point_defense', mode: 'auto' }, 'player');
+    executeCommand(w, { action: 'set_point_defense', mode: 'auto' }, 'player');
     const pd = w.events.filter(e => e.type === 'autonomy_changed' && (e.payload as {domain: string}).domain === 'pointDefense');
     expect(pd).toHaveLength(1);
-    expect(pd[0].payload).toMatchObject({ previous: 'auto', level: 'manual' });
+    expect(pd[0].payload).toMatchObject({ previous: 'manual', level: 'auto' });
   });
 });

@@ -178,6 +178,7 @@ describe('Auto defense', () => {
   it('ASCM at 1nm triggers chaff+ciws crew-auto no repeat', () => {
     const cfg = {...WEAPONS_CONFIG, ciws:{...WEAPONS_CONFIG.ciws, pkPerMissile:0}};
     const world = w([], cfg);
+    executeCommand(world, { action: 'set_point_defense', mode: 'auto' }, 'player');
     expect(world.weapons.config.ciws.pkPerMissile).toBe(0);
     launchAscms(world, {count:1,weapon:'ASCM',speedKts:600,altitudeFt:50,
       launcherId:'r',trackId:'A-01',t:0,position:{x:0,y:1},rangeNm:1,bearingDeg:0});

@@ -103,8 +103,8 @@ describe('SituationHistory', () => {
     expect(acts.length).toBeGreaterThanOrEqual(1);
     const a1act = acts.find((a) => a.trackId === 'A-01');
     expect(a1act).toBeDefined();
-    expect(a1act!.speedKts).toBeCloseTo(420, 0);
-    expect(a1act!.altitudeFt).toBeCloseTo(15000, 0);
+    expect(a1act!.speedKts).toBeCloseTo(600, 0);
+    expect(a1act!.altitudeFt).toBeCloseTo(300, 0);
     expect(observedLaunchBearing).toBeDefined();
     expect(a1act!.bearingDeg).toBeCloseTo(observedLaunchBearing!, 6);
     expect(a1act!.t).toBeCloseTo(launchTime!, 6);

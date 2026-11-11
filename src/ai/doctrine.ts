@@ -73,13 +73,11 @@ export class Doctrine {
       if (track.domain === 'air') {
         const initialBearing = this.firstBearings.get(track.id)!;
         const fromRed = initialBearing >= 20 && initialBearing <= 70;
-        const profileMatch = hostileActs.some((act) =>
+        const approachVectorMatch = hostileActs.some((act) =>
           act.t <= world.time && act.trackId !== track.trackId &&
-          Math.abs(track.altitudeFt - act.altitudeFt) <= 1000 &&
-          Math.abs(track.speedKts - act.speedKts) <= 30 &&
           Math.abs(angleDiff(initialBearing, act.bearingDeg)) <= 15,
         );
-        if (fromRed && closing > 0 && profileMatch) rule = 'ROE-3';
+        if (fromRed && closing > 0 && approachVectorMatch) rule = 'ROE-3';
       } else if (track.domain === 'surface') {
         const group = this.observeGroup(track, surfaces, closing);
         if (track.sensors.ais.kind === 'none' && group?.departed &&
@@ -109,7 +107,7 @@ export class Doctrine {
 
       if (rule === 'ROE-3') {
         if (range >= world.weapons.config.sam.minRangeNm && range <= world.weapons.config.sam.maxRangeNm) {
-          this.proposals.submit({ action: 'engage_sam', target: track.id }, 'doctrine', 'ROE-3 observed hostile profile match');
+          this.proposals.submit({ action: 'engage_sam', target: track.id }, 'doctrine', 'ROE-3 observed Red-sector approach-vector match');
         }
       } else if (range <= world.weapons.config.gun.maxRangeNm) {
         this.proposals.submit({ action: 'engage_gun', target: track.id }, 'doctrine', 'ROE-5 fast closing contact departed a group');

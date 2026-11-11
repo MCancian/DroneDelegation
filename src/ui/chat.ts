@@ -1,6 +1,7 @@
 import type { ChatMessage } from '../ai/client';
 import { streamChat, getAiHealth } from '../ai/client';
 import { Conversation } from '../ai/conversation';
+import { decodeActionBlock, extractActionBlocks } from '../ai/actionBlocks';
 
 export interface ChatPanel {
   appendNotice(text: string): void;
@@ -26,19 +27,29 @@ type Segment =
   | { type: 'card'; card: ActionCard }
   | { type: 'malformed'; content: string };
 
-function parseActionBlocks(text: string): { segments: Segment[] } {
+export function parseActionBlocks(text: string): { segments: Segment[] } {
   const segments: Segment[] = [];
-  const fenceRegex = /```action\s*\r?\n([\s\S]*?)```/gi;
   let lastIndex = 0;
-  let match: RegExpExecArray | null;
 
-  while ((match = fenceRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      segments.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+  for (const block of extractActionBlocks(text)) {
+    if (block.start > lastIndex) {
+      segments.push({ type: 'text', content: text.slice(lastIndex, block.start) });
     }
-    const jsonStr = match[1].trim();
+    const jsonStr = block.content;
+    let items: unknown[];
     try {
-      const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+      items = decodeActionBlock(jsonStr);
+    } catch {
+      segments.push({ type: 'malformed', content: jsonStr });
+      lastIndex = block.end;
+      continue;
+    }
+    for (const item of items) {
+      if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+        segments.push({ type: 'malformed', content: JSON.stringify(item) });
+        continue;
+      }
+      const parsed = item as Record<string, unknown>;
       if (typeof parsed.action === 'string') {
         const card: ActionCard = { action: parsed.action };
         if (typeof parsed.target === 'string') card.target = parsed.target;
@@ -54,12 +65,10 @@ function parseActionBlocks(text: string): { segments: Segment[] } {
         if (extras.length > 0) card.extra = extras.join(' ');
         segments.push({ type: 'card', card });
       } else {
-        segments.push({ type: 'malformed', content: jsonStr });
+        segments.push({ type: 'malformed', content: JSON.stringify(item) });
       }
-    } catch {
-      segments.push({ type: 'malformed', content: jsonStr });
     }
-    lastIndex = match.index + match[0].length;
+    lastIndex = block.end;
   }
 
   if (lastIndex < text.length) {

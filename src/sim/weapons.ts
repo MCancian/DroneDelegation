@@ -57,7 +57,7 @@ export function createWeaponsState(seed: number, config: WeaponsConfig = WEAPONS
   return {
     config,
     rng: mulberry32((seed ^ 0xc2b2ae35) >>> 0),
-    pointDefense: 'auto',
+    pointDefense: 'manual',
     chaffActiveUntilS: -Infinity,
     ascms: {},
     salvos: [],
@@ -72,7 +72,7 @@ export function createWeaponsState(seed: number, config: WeaponsConfig = WEAPONS
 // Results
 // ---------------------------------------------------------------------------
 
-export type WeaponError = 'invalid_target' | 'out_of_range' | 'no_inventory' | 'busy' | 'ship_lost';
+export type WeaponError = 'invalid_target' | 'out_of_range' | 'too_late' | 'no_inventory' | 'busy' | 'ship_lost';
 
 export type WeaponResult = { ok: true } | { ok: false; error: WeaponError; message: string };
 
@@ -329,6 +329,9 @@ export function fireCiws(world: World, targetId: string, actor: Actor): WeaponRe
 
   const cfg = ws.config.ciws;
   const range = rangeTo(world.ownShip.position, target.position);
+  if (range <= ws.config.ascm.arrivalRadiusNm) {
+    return fail('too_late', 'Missile has entered the impact radius; too late for CIWS');
+  }
   if (range > cfg.maxRangeNm) {
     return fail('out_of_range', `Target at ${range.toFixed(1)} nm exceeds CIWS range ${cfg.maxRangeNm} nm`);
   }
@@ -446,6 +449,9 @@ export function stepWeapons(world: World, _dtS: number): void {
       if (world.trackFor(ascmId)?.detected !== true) continue;
 
       const rangeNm = rangeTo(world.ownShip.position, contact.position);
+      // Defenses cannot act after a missile has crossed the impact threshold;
+      // stepWeapons resolves impact later in this step.
+      if (rangeNm <= cfg.ascm.arrivalRadiusNm) continue;
       const speedNmPerSec = contact.speedKts / 3600;
       if (speedNmPerSec <= 0) continue;
       const timeToImpact = rangeNm / speedNmPerSec;
@@ -467,6 +473,7 @@ export function stepWeapons(world: World, _dtS: number): void {
       if (world.trackFor(ascmId)?.detected !== true) continue;
 
       const rangeNm = rangeTo(world.ownShip.position, contact.position);
+      if (rangeNm <= cfg.ascm.arrivalRadiusNm) continue;
       if (rangeNm > cfg.ciws.maxRangeNm) continue;
       if (world.ownShip.inventory.ciws < cfg.ciws.roundsPerEngagement) continue;
 
@@ -537,29 +544,11 @@ export function stepWeapons(world: World, _dtS: number): void {
 
     const target = world.contactById(burst.targetId);
     if (target && target.alive) {
-      const rangeNm = rangeTo(world.ownShip.position, target.position);
-      if (rangeNm <= cfg.gun.maxRangeNm) {
-        const killed = ws.rng.chance(cfg.gun.pkPerBurst);
-        if (killed) {
-          destroyContact(world, target, 'gun', burst.actor);
-        }
-        world.logEvent('weapon_result', burst.actor, {
-          weapon: 'gun',
-          targetId: burst.targetId,
-          killed,
-        });
-      } else {
-        world.logEvent('weapon_result', burst.actor, {
-          weapon: 'gun',
-          targetId: burst.targetId,
-          killed: false,
-        });
-      }
-    } else {
+      destroyContact(world, target, 'gun', burst.actor);
       world.logEvent('weapon_result', burst.actor, {
         weapon: 'gun',
         targetId: burst.targetId,
-        killed: false,
+        killed: true,
       });
     }
   }

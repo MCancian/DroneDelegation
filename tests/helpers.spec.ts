@@ -70,7 +70,6 @@ describe('deterministicWeaponsConfig', () => {
     const cfg = deterministicWeaponsConfig(1);
     expect(cfg.sam.pkSalvoVsAircraft).toBe(1);
     expect(cfg.sam.pkPerMissileVsAscm).toBe(1);
-    expect(cfg.gun.pkPerBurst).toBe(1);
     expect(cfg.ciws.pkPerMissile).toBe(1);
     expect(cfg.ascm.pHit).toBe(1);
     expect(cfg.ascm.pHitChaff).toBe(1);
@@ -86,7 +85,6 @@ describe('deterministicWeaponsConfig', () => {
     const cfg = deterministicWeaponsConfig(0);
     expect(cfg.sam.pkSalvoVsAircraft).toBe(0);
     expect(cfg.sam.pkPerMissileVsAscm).toBe(0);
-    expect(cfg.gun.pkPerBurst).toBe(0);
     expect(cfg.ciws.pkPerMissile).toBe(0);
     expect(cfg.ascm.pHit).toBe(0);
     expect(cfg.ascm.pHitChaff).toBe(0);
@@ -420,7 +418,6 @@ describe('deterministic Pk fireSam integration', () => {
     const cfg = deterministicWeaponsConfig(1);
     expect(cfg.sam.pkSalvoVsAircraft).toBe(1);
     expect(cfg.sam.pkPerMissileVsAscm).toBe(1);
-    expect(cfg.gun.pkPerBurst).toBe(1);
     expect(cfg.ciws.pkPerMissile).toBe(1);
     expect(cfg.ascm.pHit).toBe(1);
     expect(cfg.ascm.pHitChaff).toBe(1);

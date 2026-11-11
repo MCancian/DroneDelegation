@@ -225,8 +225,8 @@ describe('validation', () => {
 
   it('gun busy', () => {
     const world = makeWorld(
-      [makeContact({ id: 's', domain: 'surface', size: 'small', position: { x: 0, y: 5 } })],
-      { weaponsConfig: { ...WEAPONS_CONFIG, gun: { ...WEAPONS_CONFIG.gun, pkPerBurst: 0 } } },
+      [makeContact({ id: 's', domain: 'surface', size: 'small', position: { x: 0, y: 5 } }),
+        makeContact({ id: 's2', domain: 'surface', size: 'small', position: { x: 0, y: 6 } })],
     );
 
     const r1 = fireGun(world, 's', 'player');
@@ -239,11 +239,26 @@ describe('validation', () => {
 
     const target = world.contactById('s');
     expect(target).toBeDefined();
-    expect(target!.alive).toBe(true);
+    expect(target!.alive).toBe(false);
 
-    const r3 = fireGun(world, 's', 'player');
+    const r3 = fireGun(world, 's2', 'player');
     expect(r3.ok).toBe(true);
     expect(world.ownShip.inventory.gunBursts).toBe(38);
+  });
+
+  it('guarantees destruction only after the configured gun engagement time', () => {
+    for (const seed of [1, 7, 42, 1234]) {
+      const world = makeWorld([makeContact({ id: 's', domain: 'surface', size: 'small', position: { x: 0, y: 8.95 }, courseDeg: 0, speedKts: 40 })], { seed });
+      expect(fireGun(world, 's', 'player').ok).toBe(true);
+      stepFor(world, WEAPONS_CONFIG.gun.burstS - STEP_S);
+      expect(world.contactById('s')?.alive).toBe(true);
+      expect(rangeTo(world.ownShip.position, world.contactById('s')!.position)).toBeGreaterThan(WEAPONS_CONFIG.gun.maxRangeNm);
+      world.step(STEP_S);
+      expect(world.contactById('s')?.alive).toBe(false);
+      expect(world.events.some(e => e.type === 'weapon_result' &&
+        (e.payload as { weapon?: string; killed?: boolean }).weapon === 'gun' &&
+        (e.payload as { killed?: boolean }).killed === true)).toBe(true);
+    }
   });
 });
 

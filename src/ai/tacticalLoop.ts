@@ -5,6 +5,7 @@ import { serializeSituation, type ObservedHostileAct } from './situation';
 import { SYSTEM_PROMPT } from './systemPrompt';
 import { closingSpeed, rangeTo, velocityFrom } from '../sim/geo';
 import type { World } from '../sim/world';
+import { isEventOfType } from '../sim/events';
 
 export interface TacticalOptions {
   getHostileActs(): readonly ObservedHostileAct[];
@@ -30,7 +31,8 @@ export class TacticalLoop {
   private inFlight: AbortController | null = null;
   private pending = false;
   private stopped = false;
-  private active = false;
+  private authority = '';
+  private authorityEventCursor = 0;
 
   constructor(readonly world: World, private readonly manager: ProposalManager, private readonly options: TacticalOptions) {
     this.request = options.request ?? defaultRequest;
@@ -39,8 +41,10 @@ export class TacticalLoop {
   update(): void {
     if (this.stopped || this.options.isEnded?.()) { this.stop(); return; }
     const isActive = this.world.autonomy.air !== 'HOLD' || this.world.autonomy.surface !== 'HOLD';
-    let triggered = isActive && !this.active;
-    this.active = isActive;
+    const authority = `${this.world.autonomy.air}:${this.world.autonomy.surface}`;
+    let triggered = isActive && (authority !== this.authority || this.changedAuthoritySince(this.authorityEventCursor));
+    this.authority = authority;
+    this.authorityEventCursor = this.world.events.length;
     const nextTracks = new Map<string, TrackTrigger>();
     const own = this.world.ownShip;
     const ownVelocity = velocityFrom(own.courseDeg, own.speedKts);
@@ -83,6 +87,11 @@ export class TacticalLoop {
     this.inFlight?.abort();
   }
 
+  private changedAuthoritySince(cursor: number): boolean {
+    return this.world.events.slice(cursor).some((event) => isEventOfType(event, 'autonomy_changed') &&
+      (event.payload.domain === 'air' || event.payload.domain === 'surface'));
+  }
+
   private startRequest(): void {
     const startedAt = this.world.time;
     this.lastRequestAt = startedAt;
@@ -97,9 +106,14 @@ export class TacticalLoop {
       { role: 'user', content: instruction },
     ];
     void Promise.resolve().then(() => this.request(messages, controller.signal)).then((reply) => {
-      if (controller.signal.aborted || this.stopped || this.options.isEnded?.() || this.world.time - startedAt > 30 + 1e-9 ||
-          this.world.autonomy.air !== levels.air || this.world.autonomy.surface !== levels.surface ||
-          this.world.events.slice(eventCursor).some((event) => event.type === 'autonomy_changed' && ['air', 'surface'].includes((event.payload as { domain?: string }).domain ?? ''))) return;
+      if (controller.signal.aborted || this.stopped || this.options.isEnded?.()) return;
+      if (this.world.autonomy.air !== levels.air || this.world.autonomy.surface !== levels.surface || this.changedAuthoritySince(eventCursor)) {
+        // The old snapshot cannot act under new authority. Reassess it as soon
+        // as this request settles, including changes between simulation steps.
+        this.pending = true;
+        return;
+      }
+      if (this.world.time - startedAt > 30 + 1e-9) return;
       this.options.onReply(reply);
       const parsed = parseActions(reply, this.world);
       for (const error of parsed.errors) {

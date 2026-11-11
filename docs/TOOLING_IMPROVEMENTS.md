@@ -337,3 +337,120 @@ text and separated fleet labels. Native IDs, final file hashes, baseline and
 tuned outcome distributions, retained failures and repair decisions are in the
 M7 evidence directory. The browser checks use controlled AI health responses;
 live model prose is outside these deterministic proofs.
+
+## Playtesting follow-up observations (M8)
+
+Scope: issues #50–#58 and the user's subsequent design decisions. Native
+`gpt-6.1-sol` agents handled the initial independent fixes; `gpt-6-luna`
+agents explored and implemented the remaining decisions in isolated staging
+copies. These are additional tooling proposals from that work, not tooling
+features implemented by it. Earlier missing-skill observations are historical:
+`development-evidence` is available at its canonical path at this review.
+
+| Priority | Owner | Observation | Proposed improvement |
+| --- | --- | --- | --- |
+| High | DroneDelegation | Aircraft and combat work passed focused checks independently, but combining the faster attacker with MANUAL point defense changed careful-player damage from 2/20 in the combat agent's baseline to 19/20. Its scripted player still assumed automatic defense, and the faster attacker could launch before a SAM arrived. | Add a scenario interaction matrix covering aircraft motion, weapon travel time, defense defaults, sensor timing, and scripted strategies. Recheck combined inputs with normal damage and actual early termination; require explicit player actions in strategy fixtures and classify changed expectations before repair. |
+| High | DroneDelegation | The first four-phase missile test launched every missile before advancing the supposed launch phase. It measured the same physical window four times while reporting different delays. | Build timing fixtures that advance to the chosen sweep phase before launch and measure first detection and actual impact events. Retain event timelines and check phase coverage, prompt responses, and delayed responses. The repaired fixture measured 2.2–5.2 seconds; a five-second response failed in three of four samples. |
+| High | DroneDelegation | A live Jarvis reply claimed it was setting point defense to AUTO and emitted that action, but autonomous policy correctly permitted only the engagement. The smoke test passed because a SAM fired and no parse notice appeared. | Extend the existing live compatibility probe to reconcile every proposed action with policy, command results, and resulting state. Verify that skipped/advice-only actions cannot be mistaken for successful execution; surface their disposition without expanding authority. A successful reply or one successful weapon action is insufficient evidence for the other claims. |
+| High | DroneDelegation | Larger text left the briefing introduction scrolled out of view because initial focus went to the start button. Separately, urgent-alert code scrolled an inner list while CSS made its parent the actual scroll owner. | Extend the existing browser smoke harness with visible geometry and scroll-position assertions: introduction starts visible, newest urgent alert remains visible after overflow, tabs/unread counts work, and Standard/Large text and canvas labels resize and persist at 1280×720. Review screenshots as well as DOM presence. |
+| Medium | development-evidence | The aircraft and combat agents, plus the integration owner, needed different parts of `strait.ts`: aircraft data, combat configuration, and scripted report wording. Applying either complete file wholesale would have discarded other accepted changes. | Record one final integration owner for a shared file and explicit section contracts for staged proposals. Validate base hashes and owned differences before merging, then validate the complete combined file. Extend existing staging/evidence tooling rather than introducing a second workflow. |
+| Medium | Codex | A fourth native-agent spawn was rejected by the thread limit; an agent that had completed its first task was reused for the queued investigation. | Expose remaining agent capacity and support queued tasks on authorized agents. Keep task-specific model selection, ownership, and completion evidence when reusing a worker; do not duplicate in-flight work after a capacity rejection. |
+| Medium | development-evidence | Task records, retained failures, live-model replies, browser proofs, and the final verification log remain under temporary execution directories. | Add durable evidence finalization to the existing evidence scripts: archive selected records/logs/artifacts with hashes and original native IDs, preserving execution paths while checking archived references. Exclude dependency caches and browser profiles. Until archived, label these paths as temporary evidence. |
+
+The first direct-upstream smoke attempt also omitted the production proxy's
+leading-system-message normalization and received HTTP 400. That was a harness
+defect, not a new product regression. Reusing the existing normalization fixed
+the probe. This supplies further evidence for the M4 proposal to exercise the
+actual production message path rather than maintaining a separate approximation.
+
+Final local verification passed 175 tooling tests, both TypeScript projects,
+727 application tests across 59 files, and the production build (native session
+`87824`, exit `0`). Chromium checked role routing, unread counts, keyboard
+navigation, contact selection, urgent overflow, briefing visibility, saved text
+sizes, and canvas font sizes. A separate live model probe executed an engagement
+for a matching approach vector despite different altitude and speed; it did not
+establish that every action claimed in the model's prose executed.
+
+Temporary evidence, not a durable archive:
+
+- `/tmp/drone-playtest-eg0jjebn/task-record.json` — initial independent fixes.
+- `/tmp/drone-design-quakq2t8/task-record.json` — design decisions, staging,
+  integration repairs, native IDs, and applied-file hashes.
+- `/tmp/drone-design-quakq2t8/verify.log` — final repository gates.
+- `/tmp/drone-design-quakq2t8/browser-result.json`, `layout-standard.png`, and
+  `layout-large.png` — browser assertions and reviewed screenshots.
+- `/tmp/drone-design-quakq2t8/live-request.json`, `live-reply.json`, and
+  `live-summary.json` — live-model input, response, and observed execution.
+
+## Codex-slimming dispositions before M9 implementation
+
+Reviewed 2026-11-10 (America/New_York; 2026-11-11 UTC). The historical
+observations above remain intact. These dispositions describe that review;
+the subsequent M9 implementation is recorded below. Unrelated DroneDelegation
+feature and balance proposals remain separate work.
+
+| Proposals | Current disposition |
+| --- | --- |
+| Missing skill and evidence records | The canonical `development-evidence` skill and its alias are healthy; only the dangling `agent-claude` alias was removed. Evidence machinery is optional; native logs and a brief existing task note suffice when useful. The user accepted current startup skill availability behavior; no startup validator was added. |
+| Complete-file envelopes and output/reasoning budgets | Native artifacts and diffs are the default. The generic `complete_files.py` fallback is retained for small external tasks, separately from this repository's optional Jarvis packet/caller transport. Both retain their existing contracts. No automatic estimator or schema service was added. |
+| Interface and shared-file ownership | Agree interfaces and ownership before authorized parallel work, then review native artifacts and owned diffs before coordinated shared-file integration. This is procedure, not automation; no automatic contract injection was added. |
+| Output capture and permanent evidence | The Codex output hook and its stale trust entry were removed. Shared-guard documentation now describes current Claude-only wiring and the intentional dual-client installer; guard code and Claude configuration were unchanged. Native limits remain; the user declined permanent archive machinery. Historical temporary evidence remains labeled temporary. |
+| Native waiting and instruction volume | Wait instructions were compacted and the duplicate hint removed; existing native 45–50-second settings remain. Minimal AGENTS instructions were adopted. High reasoning remains the user's preference, not an original backlog issue. |
+| Native agent capacity | The user accepted current Codex agent-capacity behavior. No custom scheduler or capacity API was added. |
+| Review anchors, async lifecycle, and temporal fixtures | These are now repository task-specific practices in `docs/TOOLING.md`: supplied dates and checked source anchors, relevant lifecycle failures, and phase/event-time observations with useful traces. This is documentation, not new automation. Earlier concrete application bugs were already fixed and were not re-tested by this docs change. |
+| Shell initialization | Initial tool probes were clean, but `TERM=dumb bash -lc 'printf "%s\n" noninteractive-login-ok'` reproduced two Starship errors and terminal control sequences despite exit `0`; the corresponding `bash -c` probe was clean. Both distribution-managed prompt initialization and user setup contribute. An in-memory guard of user initialization still left a system-profile error, so the candidate was rejected and no live shell files changed. Prefer `login: false` when login setup is unnecessary. The robust host fix remains pending in [#61](https://github.com/MCancian/DroneDelegation/issues/61) and requires coordinated host-owner work. |
+| Historical repository restrictions | The guide now uses the current user/task's authoring model and scope. Blanket authorship and feature exclusions from completed [#36](https://github.com/MCancian/DroneDelegation/issues/36) were removed from ongoing rules; optional Jarvis executable contracts remain intact. |
+
+That review left three implementations tracked in
+[M9 Tooling Reliability](https://github.com/MCancian/DroneDelegation/milestone/9):
+
+- [#59 — Add read-only milestone and checkout preflight](https://github.com/MCancian/DroneDelegation/issues/59).
+- [#60 — Add maintained browser smoke checks with prompt failure diagnostics](https://github.com/MCancian/DroneDelegation/issues/60).
+- [#61 — Fix noninteractive login-shell prompt initialization on the development host](https://github.com/MCancian/DroneDelegation/issues/61).
+
+That review changed policy and documentation only and claimed no application
+gates. The implementation below addresses exactly those three M9 items, using
+the user's subsequent design decisions.
+
+## M9 tooling reliability implementation
+
+Implemented locally on 2026-11-11 against HEAD `f17edf9`, including the existing
+dirty working-tree inputs. Three `gpt-6.1-sol` leads each used one
+`gpt-6-luna` exploratory reviewer. Work was staged separately with agreed file
+ownership; the integration owner reviewed native artifacts, owned differences,
+and screenshots before application. Existing gameplay changes were preserved.
+
+| Item | Implementation and checks |
+| --- | --- |
+| #59: informational preflight | `scripts/milestone_status.py` uses authenticated native `gh` queries and read-only Git inspection. Human/JSON output keeps issue closure, explicit PR links, merge state, checkout inclusion, and unverified acceptance separate. Fifteen hermetic tests cover lookup, pagination/partial failures, missing metadata, dirty trees, and complete/shallow histories. Live probes correctly report M9's three open issues and M3's two closed issues with merged PRs #31/#32 included in HEAD. Findings are informational; lookup/transport errors fail while retaining partial results. |
+| #60: deterministic browser smoke | `npm run smoke` builds the app and a cache-only production-component fixture, then runs five Chromium checks. The real proxy handles a fake upstream's success, immediate 503, cancellation, and post-cancel recovery. Standard/Large geometry, radar/report selection, manual command results, unread/overflow behavior, and native audio activation after a trusted gesture are checked. Screenshots were reviewed. A separate CI job runs on every PR and main push; ordinary report/results artifacts expire after seven days. |
+| #61: local host repair | Interactive guards were applied to the user's Bling/VS Code setup. The user applied the reviewed root-owned Starship profile guard with exact-hash checks and a root-only backup. Final verification passes all eight noninteractive variants with exact marker-only stdout and empty stderr, four unchanged PATH/tool-resolution comparisons, and four unchanged interactive terminal variants. No immutable `/usr/share` files were changed. |
+
+The browser suite asserts geometry rather than pixel baselines. Its crew
+component checks are identified separately from full-app integration checks.
+Native audio activation does not prove speaker audibility, and deterministic
+responses do not establish live-model quality. The milestone command never
+fetches, runs checks, changes GitHub state, or concludes acceptance from closure.
+
+The stable procedures and commands are in `docs/TOOLING.md`. Final repository
+verification uses `bash scripts/node22.sh npm run verify`, followed separately
+by `bash scripts/node22.sh npm run smoke` on the integrated checkout. The initial
+local implementation left GitHub issue/milestone state unchanged; publication
+and remote CI results are separate from those local checks.
+
+Publication review also reproduced and repaired three regressions in the
+preceding gameplay changes: the AAR missed the revised affirmative visual-ID
+wording; a scripted uncertainty report could contradict an earlier visual ID;
+and an unsolicited crew report replaced a focused report button. Producer-to-AAR
+and maneuvered-scenario checks now retain the observed identification, while
+Standard/Large browser checks preserve report focus and Enter selection during
+updates. The failing reproductions were retained before repair, alongside the
+focused passing checks. These repairs preserve the approved gameplay design.
+
+Temporary execution evidence, not a durable archive:
+`/tmp/drone-m9-52xc6ycb/` contains the brief task record, staged native results,
+live preflight JSON, final `verify.log` and `smoke.log`, and `host-final.log`.
+The private host backup contains user configuration and must not be printed or
+attached. The reviewed system rollback preserves the original file's owner,
+mode, and SELinux context. The local `/etc` override needs review if Bluefin
+updates its owner.

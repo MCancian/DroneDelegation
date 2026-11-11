@@ -35,7 +35,58 @@ describe('tactical requests', () => {
     expect(stale.replies).toEqual([]); expect(stale.world.ownShip.inventory.sam).toBe(24); stale.loop.stop();
     const revoked = setup(); setAutonomy(revoked.world, 'air', 'WEAPONS_FREE'); revoked.loop.update(); await tick();
     setAutonomy(revoked.world, 'air', 'HOLD'); setAutonomy(revoked.world, 'air', 'WEAPONS_FREE');
-    revoked.resolve(action); await tick(); expect(revoked.replies).toEqual([]); expect(revoked.world.ownShip.inventory.sam).toBe(24); revoked.loop.stop();
+    revoked.resolve(action); await tick(); expect(revoked.replies).toEqual([]); expect(revoked.world.ownShip.inventory.sam).toBe(24);
+    expect(revoked.request).toHaveBeenCalledTimes(2);
+    revoked.resolve(action); await tick(); expect(revoked.world.ownShip.inventory.sam).toBe(22); revoked.loop.stop();
+  });
+  it('immediately reassesses when Air becomes WEAPONS FREE while Surface is already delegated', async () => {
+    const s = setup(); setAutonomy(s.world, 'surface', 'CONSENT');
+    s.loop.update(); await tick(); s.resolve('No surface engagement.'); await tick();
+    expect(s.request).toHaveBeenCalledTimes(1);
+    s.world.time = 1; setAutonomy(s.world, 'air', 'WEAPONS_FREE');
+    s.loop.update(); await tick();
+    expect(s.request).toHaveBeenCalledTimes(2);
+    expect(s.request.mock.calls[1][0][2].content).toContain('Air WEAPONS_FREE');
+    s.resolve(action); await tick();
+    expect(s.world.ownShip.inventory.sam).toBe(22);
+    expect(s.world.events.some((event) => event.type === 'proposal_executed' && event.actor === 'ai-auto')).toBe(true);
+    s.loop.stop();
+  });
+  it('queues a fresh decision after an in-flight reply is invalidated by a domain authority change', async () => {
+    const s = setup(); setAutonomy(s.world, 'surface', 'CONSENT');
+    s.loop.update(); await tick();
+    setAutonomy(s.world, 'air', 'WEAPONS_FREE'); s.loop.update(); await tick();
+    expect(s.request).toHaveBeenCalledTimes(1);
+    s.resolve(action); await tick();
+    expect(s.replies).toEqual([]);
+    expect(s.world.ownShip.inventory.sam).toBe(24);
+    expect(s.request).toHaveBeenCalledTimes(2);
+    s.resolve(action); await tick();
+    expect(s.world.ownShip.inventory.sam).toBe(22);
+    s.loop.stop();
+  });
+  it('reassesses authority revoked and restored between updates even when the final levels match', async () => {
+    const s = setup(); setAutonomy(s.world, 'air', 'WEAPONS_FREE');
+    s.loop.update(); await tick(); s.resolve('Waiting.'); await tick();
+    setAutonomy(s.world, 'air', 'HOLD'); setAutonomy(s.world, 'air', 'WEAPONS_FREE');
+    s.loop.update(); await tick();
+    expect(s.request).toHaveBeenCalledTimes(2);
+    s.resolve(action); await tick(); expect(s.world.ownShip.inventory.sam).toBe(22);
+    s.loop.stop();
+  });
+  it('retains a newly detected closing-contact trigger during an in-flight request', async () => {
+    const s = setup(); setAutonomy(s.world, 'air', 'WEAPONS_FREE');
+    s.loop.update(); await tick();
+    s.world.contacts.push(makeContact({ id: 'second', trackId: 'A-02', position: { x: 0, y: 20 }, courseDeg: 180, speedKts: 300 }));
+    s.world.step(4); s.loop.update(); await tick();
+    expect(s.request).toHaveBeenCalledTimes(1);
+    s.resolve('Waiting for more information.'); await tick();
+    expect(s.request).toHaveBeenCalledTimes(2);
+    expect(s.request.mock.calls[1][0][1].content).toContain('A-02');
+    s.resolve(action.replace('A-01', 'A-02')); await tick();
+    expect(s.world.ownShip.inventory.sam).toBe(22);
+    expect(s.manager.list().some((proposal) => 'target' in proposal.command && proposal.command.target === 'second' && proposal.status === 'executed')).toBe(true);
+    s.loop.stop();
   });
   it('immediately reacts to observed hostile acts, entering range, and newly detected missiles', async () => {
     const world = makeWorld([makeContact({ id: 'air', trackId: 'A-01', position: { x: 0, y: 50 }, courseDeg: 180, speedKts: 0 })]);

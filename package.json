@@ -12,12 +12,14 @@
     "start": "node dist-server/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",
     "test": "vitest run",
+    "smoke": "npm run build && tsx scripts/browser/build-fixture.ts && playwright test",
     "tooling:test": "python3 -B -m unittest discover -s tests/tooling -p 'test_*.py' -v",
     "verify": "npm run tooling:test && npm run typecheck && npm test && npm run build",
     "scenario:timeline": "tsx scripts/scenarioTimeline.ts",
     "playtest": "tsx scripts/playtest.ts"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.0",
     "@types/node": "^22.9.0",
     "concurrently": "^9.1.0",
     "tsx": "^4.19.2",
