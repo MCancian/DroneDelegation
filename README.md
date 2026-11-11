@@ -34,6 +34,17 @@ npm run typecheck
 npm test
 ```
 
+The deterministic browser smoke check runs separately from `verify`, using
+Chromium and a controlled AI upstream. After `npm ci`, install Chromium once:
+
+```bash
+bash scripts/node22.sh npx playwright install chromium
+bash scripts/node22.sh npm run smoke
+```
+
+CI runs it in a separate job on every PR. The [tooling guide](docs/TOOLING.md#browser-smoke)
+describes browser prerequisites, coverage, cleanup, screenshots, and diagnostics.
+
 The AI assistant runs against a local OpenAI-compatible LLM server (default `http://127.0.0.1:8088`, model `jarvis`).
 
 ## Manual controls
@@ -131,7 +142,7 @@ bash scripts/node22.sh npm run verify
 ```
 
 [M9 Tooling Reliability](https://github.com/MCancian/DroneDelegation/milestone/9)
-tracks the pending read-only milestone/checkout preflight
+tracks the read-only milestone/checkout preflight
 ([#59](https://github.com/MCancian/DroneDelegation/issues/59)) and maintained
 browser smoke checks with prompt failure diagnostics
 ([#60](https://github.com/MCancian/DroneDelegation/issues/60)), plus the development

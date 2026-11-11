@@ -28,8 +28,8 @@ authorization; these practices do not require a global checklist or new records.
   query failure or milestone not found from a successful query returning no
   issues. Check open issues, merged PRs, inclusion of their commits in the current
   checkout, and acceptance evidence separately: none alone proves completion.
-  This is manual until the read-only preflight in
-  [#59](https://github.com/MCancian/DroneDelegation/issues/59) is implemented.
+  Use the informational milestone preflight below; review acceptance evidence
+  separately from its inventory.
 - Source reviews use the supplied run date and identify the reviewed revision,
   file, and symbol. Open the claimed references and check that they support the
   finding before presenting them as evidence; line numbers alone can go stale.
@@ -43,10 +43,154 @@ authorization; these practices do not require a global checklist or new records.
 - Browser proofs race success against visible error outcomes with bounded waits.
   Inspect the relevant request, error details, and screenshot before teardown;
   a timeout or one successful action does not establish the full interaction.
-  The maintained harness remains pending in
-  [#60](https://github.com/MCancian/DroneDelegation/issues/60).
+  The maintained browser smoke command below exercises these outcomes.
 - Prefer native non-login commands (`login: false`) when the environment does
   not require login setup. Collect terminal results before rerunning work.
+
+## Milestone preflight
+
+Requires Python 3.8+, Git, and an authenticated GitHub CLI (`gh`). Run from the
+checkout to inspect, or supply its path explicitly:
+
+```bash
+python3 -B scripts/milestone_status.py --milestone 9
+python3 -B scripts/milestone_status.py --milestone 'M9 Tooling Reliability' --checkout /path/to/checkout --repo MCancian/DroneDelegation --json
+```
+
+The default checkout is the current Git working tree, resolved to its root. The
+repository defaults to that checkout's `origin` remote; supply `--repo OWNER/REPO`
+when there is no origin or a different repository is intended. Milestone lookup
+uses its number or exact canonical title, including closed milestones. An
+unmatched or ambiguous title is an error, distinct from an empty milestone.
+
+Human and JSON output report issue states, explicitly linked implementation
+PRs, merge commits, HEAD, dirty state, and local commit inclusion. Generic
+mentions are not implementation links. Closure, merge, inclusion, and acceptance
+remain separate: acceptance is always unverified by this command. A merged PR
+or zero open issues does not establish acceptance; inspect relevant evidence.
+
+Exit `0` means reporting succeeded, even with open issues, dirty files, missing
+local commit objects, or unverified acceptance. Missing objects and inconclusive
+shallow history produce `unknown`, without fetching. Exit `1` indicates a lookup,
+Git, API, or authentication failure; available partial results and bounded
+diagnostics remain in the report. JSON goes to stdout, with errors also on
+stderr. Invalid command-line arguments use argparse's exit `2`. Native calls
+have a 30-second timeout and pagination is bounded.
+
+The command does not change GitHub state, edit the checkout, fetch, execute
+checks, or begin implementation. Git optional locking and lazy fetching are
+disabled during inspection. It is an informational command, not a readiness
+gate or automatic milestone closer.
+
+## Browser smoke
+
+The deterministic smoke suite requires Node 22, Linux `flock` (util-linux), and
+Playwright's pinned Chromium. After installing npm dependencies, install the
+browser once and run the suite:
+
+```bash
+bash scripts/node22.sh npx playwright install chromium
+bash scripts/node22.sh npm run smoke
+```
+
+On supported Ubuntu CI runners, `npx playwright install --with-deps chromium`
+also installs required system libraries. On other hosts, use the available
+platform libraries; the current Bluefin host launches Playwright's Ubuntu
+fallback browser successfully. Browser installation is separate from `verify`.
+
+`smoke` builds the production app, copies it into `.cache/browser-smoke/site`,
+and builds a separate crew component fixture there. It then runs Chromium at
+1280×720 with seed 1 and controlled simulation time. Production `dist/` remains
+free of the test fixture. Full-app tests and the separate production crew-module
+fixture are named distinctly in the report.
+
+The suite covers briefing visibility and start, Standard/Large layout and
+persistence, radar/report selection, manual command results, crew roles/unread
+counts, urgent scrolling, and chat through the real Node proxy. A local fake
+upstream enforces the single-leading-system-message template. Tests require the
+combined prompt and situation, execute a direct order, inject an immediate 503,
+cancel an unfinished action without executing it, and prove another request can
+acquire the released slot. Each request checks expected success against new
+visible errors within five seconds rather than waiting for the outer timeout.
+
+Geometry and scroll-position assertions accompany representative screenshots;
+there are no pixel baselines. Native AudioContext unlock and oscillator
+activation are checked after trusted browser gestures. Physical speaker
+audibility and live-model quality are separate manual checks. Routine CI needs
+no model server.
+
+The suite owns ephemeral loopback HTTP ports, sockets, and isolated temporary
+slot directories. Fixture teardown closes them on success, failure, or
+cancellation, even if diagnostic capture fails. Browser page errors and
+unhandled promise rejections fail the checks. Use Ctrl-C to cancel the runner
+normally. Tests use bounded observable waits and animation-frame advancement.
+
+The list reporter prints each result. Review screenshots, captured requests and
+errors, and failure traces under the ignored `.cache/browser-smoke/report/` and
+`.cache/browser-smoke/results/` directories, replaced by subsequent runs:
+
+```bash
+bash scripts/node22.sh npx playwright show-report .cache/browser-smoke/report
+```
+
+Failure summaries, relevant requests/errors, and a screenshot are captured
+before HTTP teardown. The separate CI browser job runs on every PR and main
+push, installs Chromium/system libraries, and retains report/results artifacts
+for seven days. These are ordinary run artifacts; no permanent archive is
+required. A passing mocked reply does not establish live-model compatibility or
+prove an action beyond the specific disposition and resulting state asserted.
+
+## Local host shell setup
+
+The Bluefin development host initializes Starship in both
+`/etc/profile.d/90-bluefin-starship.sh` and the Bling setup sourced by
+`~/.bashrc`. VS Code shell integration is also sourced by the user configuration.
+Prompt and terminal integration should run only in interactive shells; required
+environment setup, including Cargo's environment, stays outside those guards.
+
+The local user repair wraps the Bling source in `if [[ $- == *i* ]]; then ... fi`
+and adds the same interactivity condition to both existing VS Code sources.
+It preserves the current inherited and minimal-login PATH/tool resolution and
+interactive login/non-login integration behavior. Mise is not installed on this
+host; if added later, configure required noninteractive tool paths separately
+from prompt activation.
+
+Both local repairs were applied and verified on 2026-11-11. The final checks
+covered eight noninteractive variants, four environment comparisons, and four
+interactive terminal variants, with stable configuration hashes during the run.
+
+The system-profile repair adds this POSIX guard before the existing Starship
+initialization, retaining the rest of that file:
+
+```sh
+case $- in
+    *i*) ;;
+    *) return 0 ;;
+esac
+```
+
+This is an explicit local `/etc` override; review it when Bluefin updates that
+file. Do not edit immutable `/usr/share` files or suppress startup stderr.
+Back up the original bytes and ownership/mode before applying, and retain a
+rollback that restores the existing file without changing its permissions or
+SELinux context. The local installer checks exact reviewed input hashes and
+keeps a root-only backup at
+`/etc/profile.d/90-bluefin-starship.sh.m9-original`, which is not sourced as a
+profile script. The system edit requires root; the user repair alone leaves
+one system-profile Starship warning in noninteractive login shells.
+
+Regression checks must inspect stdout, stderr, control sequences, and exit code:
+
+```bash
+TERM=dumb bash -lc 'printf "%s\n" noninteractive-login-ok'
+TERM=dumb bash -c 'printf "%s\n" noninteractive-nonlogin-ok'
+```
+
+Both should emit only their marker with empty stderr after both repairs. Also
+check `TERM_PROGRAM=vscode`, inherited and minimal environments, named tool
+availability, and interactive login/non-login shells in a terminal. Interactive
+terminal tests must answer terminal queries and collect/reap the shell process.
+Native `login: false` remains appropriate when login setup is unnecessary.
 
 ## Prerequisites
 
@@ -73,6 +217,7 @@ The wrapper installs `node-linux-x64@22.14.0` and `npm@10.9.2` into `.cache/node
 |---|---|
 | `npm run tooling:test` | Python unittest discovery in `tests/tooling/` |
 | `npm run verify` | `tooling:test` → `typecheck` → `test` → `build` |
+| `npm run smoke` | Production build → cached crew fixture → deterministic Chromium checks |
 
 ## Manifest schema
 
